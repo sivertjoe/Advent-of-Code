@@ -24,7 +24,6 @@ where
     println!("Task {}: {}\t({}ms)", pre, res, t1.duration_since(t0).as_millis());
 }
 
-
 fn main()
 {
     let vec = read_input("input");
@@ -32,12 +31,10 @@ fn main()
     time("two", task_two, &vec);
 }
 
-
 fn task_one(vec: &[i32]) -> i32
 {
     unimplemented!()
 }
-
 
 fn task_two(vec: &[i32]) -> i32
 {
