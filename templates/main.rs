@@ -18,10 +18,9 @@ where
     F: Fn(T) -> U,
     U: std::fmt::Display,
 {
-    let t0 = std::time::Instant::now();
+    let t = std::time::Instant::now();
     let res = f(arg);
-    let t1 = std::time::Instant::now();
-    println!("Task {}: {}\t({}ms)", pre, res, t1.duration_since(t0).as_millis());
+    println!("({}ms) \tTask {}: {}", t.elapsed().as_millis(), pre, res);
 }
 
 fn main()
