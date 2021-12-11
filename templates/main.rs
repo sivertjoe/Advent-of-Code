@@ -13,21 +13,39 @@ where
         .collect()
 }
 
-fn time<F, T, U>(pre: &'static str, f: F, arg: T)
+enum Task
+{
+    One,
+    Two,
+}
+
+fn time<F, T, U>(task: Task, f: F, arg: T)
 where
     F: Fn(T) -> U,
     U: std::fmt::Display,
 {
     let t = std::time::Instant::now();
     let res = f(arg);
-    println!("({}ms) \tTask {}: {}", t.elapsed().as_millis(), pre, res);
+    let elapsed = t.elapsed().as_millis();
+
+    match task
+    {
+        Task::One =>
+        {
+            println!("({}ms)\tTask one: \x1b[0;34;34m{}\x1b[0m", elapsed, res);
+        },
+        Task::Two =>
+        {
+            println!("({}ms)\tTask two: \x1b[0;33;10m{}\x1b[0m", elapsed, res);
+        },
+    };
 }
 
 fn main()
 {
     let vec = read_input("input");
-    time("one", task_one, &vec);
-    time("two", task_two, &vec);
+    time(Task::One, task_one, &vec);
+    time(Task::Two, task_two, &vec);
 }
 
 fn task_one(vec: &[i32]) -> i32
