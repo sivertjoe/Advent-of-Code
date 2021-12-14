@@ -43,17 +43,17 @@ where
 
 fn main()
 {
-    let vec = read_input("input");
-    time(Task::One, task_one, &vec);
-    time(Task::Two, task_two, &vec);
+    let input = read_input("input");
+    time(Task::One, task_one, &input);
+    time(Task::Two, task_two, &input);
 }
 
-fn task_one(vec: &[i32]) -> i32
+fn task_one(input: &[i32]) -> i32
 {
     unimplemented!()
 }
 
-fn task_two(vec: &[i32]) -> i32
+fn task_two(input: &[i32]) -> i32
 {
     unimplemented!()
 }
