@@ -8,6 +8,7 @@ struct Matrix
 
 impl Matrix
 {
+    #[allow(dead_code)]
     fn print(&self)
     {
         for i in 0..self.vec.len()
