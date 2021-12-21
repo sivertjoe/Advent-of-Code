@@ -168,11 +168,9 @@ impl QItem
     {
         let x = self.x;
         let y = self.y;
-        let parent = self.parent;
 
         [(1, 0), (-1, 0), (0, 1), (0, -1)].into_iter().filter_map(move |(dx, dy)| {
-            ((0..dim.0).contains(&(x + dx))
-                && (0..dim.1).contains(&(y + dy))
+            ((0..dim.0).contains(&(x + dx)) && (0..dim.1).contains(&(y + dy)))
                 .then(|| (x.clone() + dx, y.clone() + dy))
         })
     }
