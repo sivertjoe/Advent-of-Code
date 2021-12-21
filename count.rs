@@ -105,12 +105,19 @@ fn print_info(task: Task, vec: &[(i32, i32)])
         Task::Gold => println!("\x1b[0;33;10m{}\x1b[0m:", "Gold"),
     };
 
+    let mut _vec: Vec<_> = vec.iter().map(|(_, time)| *time).collect();
+    _vec.sort();
+
+    let median = _vec[_vec.len() / 2];
+
     let total = vec.iter().map(|(_, time)| time).sum::<i32>();
     let avg = total / vec.len() as i32;
+
     let (day, time) = vec.iter().max_by_key(|k| k.1).unwrap();
 
     println!("\t Total time:\t{}ms", total);
     println!("\t Average time:\t{}ms", avg);
+    println!("\t Median time:\t{}ms", median);
     println!("\t Highest time:\t{}ms, day: {}", time, day);
 }
 
