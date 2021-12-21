@@ -41,7 +41,7 @@ where
     let t0 = std::time::Instant::now();
     let res = f(arg);
     let t1 = std::time::Instant::now();
-    println!("Task {}: {}\t({}ms)", pre, res, t1.duration_since(t0).as_nanos());
+    println!("Task {}: {}\t({}ms)", pre, res, t1.duration_since(t0).as_millis());
 }
 
 fn main()
