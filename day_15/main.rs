@@ -114,7 +114,7 @@ where
             let next = QItem {
                 x,
                 y,
-                local_sum: local_sum + f(x, y, &mat),
+                local_sum: local_sum + f(x, y, mat),
                 parent: (item.x, item.y),
             };
 
@@ -171,7 +171,7 @@ impl QItem
 
         [(1, 0), (-1, 0), (0, 1), (0, -1)].into_iter().filter_map(move |(dx, dy)| {
             ((0..dim.0).contains(&(x + dx)) && (0..dim.1).contains(&(y + dy)))
-                .then(|| (x.clone() + dx, y.clone() + dy))
+                .then(|| (x + dx, y + dy))
         })
     }
 }
