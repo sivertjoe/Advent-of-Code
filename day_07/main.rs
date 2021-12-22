@@ -28,7 +28,7 @@ where
 fn main()
 {
     let mut vec = read_input("input");
-    vec.sort();
+    vec.sort_unstable();
     time("one", task_one, &vec);
     time("two", task_two, &vec);
 }
@@ -36,12 +36,12 @@ fn main()
 fn task_one(vec: &[i32]) -> i32
 {
     let median = vec[vec.len() / 2];
-    vec.into_iter().map(|n| (n - median).abs()).sum()
+    vec.iter().map(|n| (n - median).abs()).sum()
 }
 
 fn task_two(vec: &[i32]) -> i32
 {
-    let mean = (vec.iter().sum::<i32>() as f32 / vec.len() as f32);
+    let mean = vec.iter().sum::<i32>() as f32 / vec.len() as f32;
 
     let calc = |n: i32, z: i32| {
         let n = (n - z).abs();
