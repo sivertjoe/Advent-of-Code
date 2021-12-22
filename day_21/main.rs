@@ -129,5 +129,5 @@ fn simulate(
     }
 
     map.insert((p1, p1s, p2, p2s), ans);
-    return ans;
+    ans
 }
