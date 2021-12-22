@@ -169,9 +169,9 @@ fn is_diagonal(line: &Line) -> bool
 
 fn draw_line(line: &Line, map: &mut Map)
 {
-    // Vertical
     if line.p1.x == line.p2.x
     {
+        // Vertical
         let x = line.p1.x;
         let (start, end) =
             if line.p1.y < line.p2.y { (line.p1.y, line.p2.y) } else { (line.p2.y, line.p1.y) };
@@ -180,9 +180,9 @@ fn draw_line(line: &Line, map: &mut Map)
             map[[x, y]] += 1;
         }
     }
-    // Horizontal
     else
     {
+        // Horizontal
         let y = line.p1.y;
         let (start, end) =
             if line.p1.x < line.p2.x { (line.p1.x, line.p2.x) } else { (line.p2.x, line.p1.x) };
