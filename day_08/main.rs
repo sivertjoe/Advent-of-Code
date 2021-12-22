@@ -69,7 +69,7 @@ fn task_two(vec: &[Line]) -> i32
     for line in vec
     {
         let mut occ: [u8; 7] = [0; 7];
-        let idx = |c: char| (c as u8 - 'a' as u8) as usize;
+        let idx = |c: char| (c as u8 - b'a') as usize;
 
         for line in &line.patterns
         {
