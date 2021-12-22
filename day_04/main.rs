@@ -14,10 +14,10 @@ where
         std::io::BufReader::new(file).lines().flatten().filter(|line| !line.is_empty());
 
     let numbers: Vec<_> =
-        reader.next().unwrap().split(",").map(|n| n.parse::<i32>().unwrap()).collect();
+        reader.next().unwrap().split(',').map(|n| n.parse::<i32>().unwrap()).collect();
 
     let mut vec: Vec<_> = reader
-        .map(|line| line.split(" ").flat_map(|n| n.parse::<i32>()).collect::<Vec<_>>())
+        .map(|line| line.split(' ').flat_map(|n| n.parse::<i32>()).collect::<Vec<_>>())
         .collect();
 
     let mut res = Vec::new();
@@ -62,7 +62,7 @@ fn task_one(mut bingo: Bingo) -> i32
             {
                 board[pos].1 = true;
 
-                if check_bingo(&board, pos)
+                if check_bingo(board, pos)
                 {
                     let sum = board.iter().filter_map(|(n, b)| (!b).then(|| *n)).sum::<i32>();
                     return sum * number;
