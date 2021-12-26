@@ -11,12 +11,12 @@ fn build(path: &str)
     // assert!(f.status.success());
 }
 
-fn get_num(s: &str) -> i32
+fn get_num(s: &str) -> Option<i32>
 {
-    let l = s.find('(').unwrap() + 1;
-    let r = s.find(')').unwrap();
+    let l = s.find('(')? + 1;
+    let r = s.find(')')?;
 
-    s[l..r - 2].parse().unwrap()
+    s[l..r - 2].parse::<i32>().ok()
 }
 
 fn run(path: &str) -> (i32, i32)
@@ -25,7 +25,9 @@ fn run(path: &str) -> (i32, i32)
     let out = std::str::from_utf8(&f.stdout).unwrap();
     assert!(f.status.success());
 
-    out.split_once('\n').map(|(a, b)| (get_num(a), get_num(b))).unwrap()
+    out.split_once('\n')
+        .map(|(a, b)| (get_num(a).unwrap(), get_num(b).unwrap_or(-1)))
+        .unwrap()
 }
 
 fn clean(path: &str)
@@ -63,7 +65,10 @@ fn main()
         {
             let (s, g) = build_and_run(path);
             silver.push((day, s));
-            gold.push((day, g));
+            if g != -1
+            {
+                gold.push((day, g));
+            }
         }
         else
         {
