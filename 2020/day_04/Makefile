@@ -1,0 +1,2 @@
+all:
+	@perl main.pl
