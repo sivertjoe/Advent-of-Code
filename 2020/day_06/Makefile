@@ -1,0 +1,2 @@
+all:
+	@runghc main.hs
