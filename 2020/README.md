@@ -9,3 +9,4 @@
 * day 6: [haskell](https://www.haskell.org/) :mage:
 * day 7: [clojure](https://clojure.org/) :test_tube:
 * day 8: [common lisp](https://common-lisp.net/) :cl:
+* day 9: [odin](https://odin-lang.org/) :meat_on_bone:
