@@ -12,3 +12,4 @@
 * day 9: [odin](https://odin-lang.org/) :meat_on_bone:
 * day 10: [zig](https://ziglang.org/) :fire:
 * day 11: [julia](https://julialang.org/) :dancer:
+* day 12: [lua](https://www.lua.org/) :moon:
