@@ -13,3 +13,4 @@
 * day 10: [zig](https://ziglang.org/) :fire:
 * day 11: [julia](https://julialang.org/) :dancer:
 * day 12: [lua](https://www.lua.org/) :moon:
+* day 13: [nim](https://nim-lang.org/) :crown:
