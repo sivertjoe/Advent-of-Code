@@ -1,16 +1,16 @@
 # Advent of Code 2020
 ## Different programming language for each day :cowboy_hat_face:
 
-* day 1: [c](https://gcc.gnu.org/) :older_man:
-* day 2: [javascript](https://www.javascript.com/) :bridge_at_night:
-* day 3: [go](https://go.dev/) :running_man:
-* day 4: [perl](https://www.perl.org/) :gem: 
-* day 5: [ocaml](https://ocaml.org/) :camel:
-* day 6: [haskell](https://www.haskell.org/) :mage:
-* day 7: [clojure](https://clojure.org/) :test_tube:
-* day 8: [common lisp](https://common-lisp.net/) :cl:
-* day 9: [odin](https://odin-lang.org/) :meat_on_bone:
-* day 10: [zig](https://ziglang.org/) :fire:
-* day 11: [julia](https://julialang.org/) :dancer:
-* day 12: [lua](https://www.lua.org/) :moon:
-* day 13: [nim](https://nim-lang.org/) :crown:
+* day 1: [c](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_01/main.c) :older_man:
+* day 2: [javascript](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_02/main.js) :bridge_at_night:
+* day 3: [go](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_03/main.go) :running_man:
+* day 4: [perl](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_04/main.pl) :gem:
+* day 5: [ocaml](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_05/main.ml) :camel:
+* day 6: [haskell](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_06/main.hs) :mage:
+* day 7: [clojure](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_07/main.clj) :test_tube:
+* day 8: [common lisp](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_08/main.lisp) :cl:
+* day 9: [odin](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_09/main.odin) :meat_on_bone:
+* day 10: [zig](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_10/main.zig) :fire:
+* day 11: [julia](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_11/main.jl) :dancer:
+* day 12: [lua](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_12/main.lua) :moon:
+* day 13: [nim](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_13/main.nim) :crown:
