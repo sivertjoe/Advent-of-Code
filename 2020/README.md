@@ -15,4 +15,4 @@
 * day 12: [lua](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_12/main.lua) :moon:
 * day 13: [nim](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_13/main.nim) :crown:
 * day 14: [swift](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_14/main.swift) :eagle:
-* day 15: [f#](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_15/main.fsx) :sleeping_bed:
+* day 15: [f#](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_15/main.fsx) :knife:
