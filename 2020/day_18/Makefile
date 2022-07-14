@@ -1,0 +1,2 @@
+all:
+	@scala main.scala

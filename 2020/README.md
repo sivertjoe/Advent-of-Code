@@ -18,3 +18,4 @@
 * day 15: [f#](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_15/main.fsx) :knife:
 * day 16: [c++](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_16/main.cpp) :skunk:
 * day 17: [d](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_17/main.d) :dizzy:
+* day 18: [scala](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_18/main.scala) :balance_scale:
