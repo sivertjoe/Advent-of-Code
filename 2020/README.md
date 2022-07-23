@@ -20,3 +20,4 @@
 * day 17: [d](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_17/main.d) :dizzy:
 * day 18: [scala](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_18/main.scala) :balance_scale:
 * day 19: [rust](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_19/main.rs) :crab:
+* day 20: [c#](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_20/main.cs) :window:
