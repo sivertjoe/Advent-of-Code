@@ -1,0 +1,2 @@
+all:
+	@kotlin main.kts
