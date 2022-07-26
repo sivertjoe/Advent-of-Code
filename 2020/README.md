@@ -23,3 +23,4 @@
 * day 20: [c#](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_20/main.cs) :window:
 * day 21: [kotlin](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_21/main.kts) :robot:
 * day 22: [scheme](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_22/main.scm) :steam_locomotive:
+* day 23: [crystal](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_23/main.cr) :crystal_ball:

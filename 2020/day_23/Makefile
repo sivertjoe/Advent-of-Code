@@ -1,0 +1,2 @@
+all:
+	@crystal main.cr
