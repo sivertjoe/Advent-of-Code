@@ -1,0 +1,2 @@
+all:
+	@ruby main.rb
