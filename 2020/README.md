@@ -25,3 +25,4 @@
 * day 22: [scheme](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_22/main.scm) :steam_locomotive:
 * day 23: [crystal](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_23/main.cr) :crystal_ball:
 * day 24: [ruby](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_24/main.rb) :diamonds:
+* day 25: [python](https://github.com/sivertjoe/Advent-of-Code/blob/master/2020/day_25/main.py) :snake:
