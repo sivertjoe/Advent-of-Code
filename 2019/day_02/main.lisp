@@ -1,5 +1,6 @@
 (load "../util/file.lisp")
 (load "../util/arrows.lisp")
+(load "../util/string.lisp")
 
 (defun read-input (filename)
   (->> filename
