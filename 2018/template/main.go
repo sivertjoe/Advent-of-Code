@@ -1,25 +1,15 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
+	"strings"
 )
 
 func readLine(path string) []string {
-	array := []string{}
-	file, err := os.Open(path)
-	if err != nil {
-		fmt.Println(err.Error() + `: ` + path)
-		os.Exit(-1)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		array = append(array, scanner.Text())
-	}
-	return array
+	b, _ := os.ReadFile(path)
+	str := string(b)
+	return strings.Split(str, "\n")
 }
 
 func partOne(array []string) int {
@@ -31,7 +21,13 @@ func partTwo(array []string) int {
 }
 
 func main() {
-	array := readLine("input")
+	args := os.Args
+	if len(args) != 2 {
+		fmt.Println("Usage: ./main <input file>")
+		os.Exit(-1)
+	}
+
+	array := readLine(args[1])
 	fmt.Println(partOne(array))
 	fmt.Println(partTwo(array))
 }
