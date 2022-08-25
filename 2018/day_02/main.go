@@ -56,10 +56,6 @@ func partOne(array []string) int {
 func differsByOne(first string, second string) (string, bool) {
 	state := 0
 
-	fmt.Println(first)
-	fmt.Println(second)
-	fmt.Println()
-
 	res := ""
 	for i := 0; i < len(first); i += 1 {
 		if first[i] != second[i] {
