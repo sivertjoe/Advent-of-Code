@@ -6,6 +6,3 @@ $ cd {day}
 $ rustc main.rs
 $ ./main
 ```
-
-## `count.rs`
-Tallies the  performance of part one and two for each day and displays information about the overall performance.

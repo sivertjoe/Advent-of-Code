@@ -2,13 +2,14 @@ use std::{path::Path, process::Command};
 
 fn build(path: &str)
 {
-    let _f = Command::new("rustc")
-        .args(vec!["-C", "opt-level=3", "--edition", "2021", "main.rs"])
-        .current_dir(path)
+    let p = format!("./{}/compile.sh", &path);
+    let p = std::path::Path::new(&p);
+    let root = p.parent().unwrap().parent().unwrap().to_str().unwrap();
+    
+    Command::new(format!("./{}/compile.sh", root))
+        .arg(path)
         .output()
         .unwrap();
-
-    // assert!(f.status.success());
 }
 
 fn get_num(s: &str) -> Option<i32>
@@ -50,6 +51,9 @@ fn build_and_run(path: &Path) -> (i32, i32)
 
 fn main()
 {
+    let folder = std::env::args().nth(1).expect("Usage: ./count <year path>");
+
+
     let mut silver = Vec::new();
     let mut gold = Vec::new();
     let mut not_done = Vec::new();
@@ -58,7 +62,7 @@ fn main()
     {
         let day_text = if day < 10 { format!("0{}", day) } else { format!("{}", day) };
 
-        let folder = format!("day_{}", day_text);
+        let folder = format!("{}/day_{}", folder, day_text);
         let path = Path::new(&folder);
 
         if path.exists()
