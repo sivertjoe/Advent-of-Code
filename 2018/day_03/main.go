@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -35,28 +33,7 @@ type Claim struct {
 
 func parseToClaim(s string) Claim {
 	claim := Claim{}
-
-	first := strings.Index(s, " ")
-	val, _ := strconv.Atoi(s[1:first])
-	claim.id = val
-
-	at := strings.Index(s, "@ ")
-	comma := strings.Index(s, ",")
-
-	n1, _ := strconv.Atoi(s[at+2 : comma])
-	claim.x = n1
-
-	colon := strings.Index(s, ":")
-	n2, _ := strconv.Atoi(s[comma+1 : colon])
-	claim.y = n2
-
-	x := strings.Index(s, "x")
-	n3, _ := strconv.Atoi(s[colon+2 : x])
-	claim.w = n3
-
-	n4, _ := strconv.Atoi(s[x+1:])
-	claim.h = n4
-
+	fmt.Sscanf(s, "#%d @ %d,%d: %dx%d", &claim.id, &claim.x, &claim.y, &claim.w, &claim.h)
 	return claim
 }
 
@@ -89,7 +66,7 @@ type Point struct {
 	count int
 }
 
-func noOverlap(array [1000][1000]Point, claim Claim) bool {
+func noOverlap(array *[1000][1000]Point, claim Claim) bool {
 	for y := claim.y; y < claim.y+claim.h; y += 1 {
 		for x := claim.x; x < claim.x+claim.w; x += 1 {
 			p := array[y][x]
@@ -119,7 +96,7 @@ func partTwo(array []string) int {
 
 	for _, v := range array {
 		claim := parseToClaim(v)
-		if noOverlap(suit, claim) {
+		if noOverlap(&suit, claim) {
 			return claim.id
 		}
 	}
@@ -149,13 +126,13 @@ func timeFunc[T any, S any](task Task, f func(T) S, arg T) {
 }
 
 func main() {
-        args := os.Args
-        if len(args) != 2 {
-                fmt.Println("Usage: ./main <input file>")
-                os.Exit(-1)
-        }
+	args := os.Args
+	if len(args) != 2 {
+		fmt.Println("Usage: ./main <input file>")
+		os.Exit(-1)
+	}
 
-        array := readLine(args[1])
-        timeFunc(Silver, partOne, array)
-        timeFunc(Gold, partTwo, array)
+	array := readLine(args[1])
+	timeFunc(Silver, partOne, array)
+	timeFunc(Gold, partTwo, array)
 }
