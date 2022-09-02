@@ -165,12 +165,24 @@ func partTwo(array []string) int {
 	// Part 2:
 	reg[0] = 1
 
-	for reg[ipf] != 34 {
+	seen := map[int]bool{}
+
+	for !seen[reg[ipf]] {
+		seen[reg[ipf]] = true
 		reg = execute(&ins, reg, ipf)
 		reg[ipf]++
+
 	}
 
-	z := reg[5]
+	// z is the big number, depending on the input, it can be
+	// in different registers.
+	z := reg[0]
+	for _, r := range reg {
+		if r > z {
+			z = r
+		}
+	}
+
 	sum := 0
 	for i := 1; i <= z; i++ {
 		if z%i == 0 {
