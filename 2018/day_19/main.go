@@ -32,7 +32,7 @@ var mapper map[string]Instruction = map[string]Instruction{
 	"gtri": Gtri,
 	"gtrr": Gtrr,
 	"eqir": Eqir,
-	"eqri": Eqir,
+	"eqri": Eqri,
 	"eqrr": Eqrr}
 
 const (
