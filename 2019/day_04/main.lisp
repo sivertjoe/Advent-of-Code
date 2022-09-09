@@ -2,8 +2,8 @@
 (load "../util/arrows.lisp")
 (load "../util/string.lisp")
 
-(defvar *nums*
-    (->> "input"
+(defun get-input (input)
+    (->> input
         (read-lines)
         (mapcar #'parse-integer)))
 
@@ -43,19 +43,44 @@
       (t (helper (+ i 1) s)))))
   (helper 0 (write-to-string n))))
 
-(defun solve (test)
+(defun solve (nums test)
   (labels ((helper (curr end sum)
     (cond
       ((eql curr end) sum)
       ((funcall test curr) (helper (+ curr 1) end (+ sum 1)))
       (t (helper (+ curr 1) end sum)))))
-    (helper (car *nums*) (cadr *nums*) 0)))
+    (helper (car nums) (cadr nums) 0)))
 
-(defun part-one ()
-  (solve (lambda (n) (and (two-adjacent n) (increasing n)))))
+(defun part-one (input)
+  (solve input (lambda (n) (and (two-adjacent n) (increasing n)))))
 
-(defun part-two ()
-  (solve (lambda (n) (and (not-in-group n) (increasing n)))))
+(defun part-two (input)
+  (solve input (lambda (n) (and (not-in-group n) (increasing n)))))
 
-(format t "~a~%" (part-one))
-(format t "~a~%" (part-two))
+(defun color (sym res)
+  (cond 
+    ((eq sym 'Silver)
+      (format nil "~c[34m~a~c[0m" #\ESC res #\ESC))
+    ((eq sym 'Gold)
+      (format nil "~c[33;10m~a~c[0m" #\ESC res #\ESC))))
+
+(defun my-timer (sym f arg)
+  (let* ((t0 (get-internal-real-time))
+        (res (funcall f arg))
+        (t1 (get-internal-real-time))
+        (elapsed (round (/ (- t1 t0) 1000))))
+    (format t "(~dms)~a~a~%" elapsed #\tab (color sym res))))
+
+(defun input () 
+  (if (eql (length *posix-argv*) 2)
+    (cadr *posix-argv*)
+    (if (probe-file "input")
+      "input"
+      (progn
+        (format t "Cant find input file..~%")
+        (exit)))))
+
+(defun main()
+  (let ((input (get-input (input))))
+      (my-timer 'Silver #'part-one input)
+      (my-timer 'Gold #'part-two input)))

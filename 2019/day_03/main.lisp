@@ -7,8 +7,8 @@
 (defun numberx (s)
     (parse-integer (subseq s 1)))
 
-(defvar *nums*
-    (->> "input"
+(defun get-input (input)
+    (->> input
         (read-lines)
         (mapcar #'(lambda (s) (split-str "," s))))) 
 
@@ -51,7 +51,7 @@
     (loop for k being the hash-keys in ht using (hash-value v)
       collect (list k v)))
 
-(defun solve (dist)
+(defun solve (dist nums)
   (defun update (l n ht)
     (let ((curr (list 0 0)) 
           (sum (list 0))) 
@@ -59,8 +59,8 @@
       ht))
 
     (-<>> (make-hash-table :test #'equal)
-      (update (car *nums*) 0)
-      (update (cadr *nums*) 1)
+      (update (car nums) 0)
+      (update (cadr nums) 1)
       (key-values)
       (remove-if (lambda (l) (or (not (inter (second l))) (equal (list 0 0) l))))
       (reduce #'min <> :key (lambda (x) (funcall dist (first x) (second x))))))
@@ -68,14 +68,39 @@
 (defun dist (k v)
    (+ (abs (first k)) (abs (second k))))
     
-(defun part-one ()
-  (solve #'dist))
+(defun part-one (input)
+  (solve #'dist input))
 
 (defun dist2 (k v)
   (+ (second (first v)) (second (second v))))
 
-(defun part-two ()
-  (solve #'dist2))
+(defun part-two (input)
+  (solve #'dist2 input))
 
-(format t "~a~%" (part-one))
-(format t "~a~%" (part-two))
+(defun color (sym res)
+  (cond 
+    ((eq sym 'Silver)
+      (format nil "~c[34m~a~c[0m" #\ESC res #\ESC))
+    ((eq sym 'Gold)
+      (format nil "~c[33;10m~a~c[0m" #\ESC res #\ESC))))
+  
+(defun my-timer (sym f arg)
+  (let* ((t0 (get-internal-real-time))
+        (res (funcall f arg))
+        (t1 (get-internal-real-time))
+        (elapsed (round (/ (- t1 t0) 1000))))
+    (format t "(~dms)~a~a~%" elapsed #\tab (color sym res))))
+
+(defun input () 
+  (if (eql (length *posix-argv*) 2)
+    (cadr *posix-argv*)
+    (if (probe-file "input")
+      "input"
+      (progn
+        (format t "Cant find input file..~%")
+        (exit)))))
+
+(defun main()
+  (let ((input (get-input (input))))
+      (my-timer 'Silver #'part-one input)
+      (my-timer 'Gold #'part-two input)))

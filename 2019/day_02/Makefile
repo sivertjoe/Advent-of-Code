@@ -1,2 +1,4 @@
+SHELL :=/bin/bash
+
 all:
-	@sbcl --script main.lisp
+	@sbcl --script <(echo -e "(load \"main.lisp\")\n(main)")
