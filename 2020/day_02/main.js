@@ -48,6 +48,14 @@ function partTwo() {
     return counter;
 }
 
+function time(f) {
+    const start = new Date()
+    const ans = f()
+    const end = new Date()
 
-console.log(partOne())
-console.log(partTwo())
+    const diff = end.getMilliseconds() - start.getMilliseconds()
+    console.log(`(${diff}ms)\t${ans}`)
+}
+
+time(partOne)
+time(partTwo)
