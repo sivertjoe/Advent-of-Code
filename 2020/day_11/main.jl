@@ -1,4 +1,5 @@
 using DelimitedFiles
+using Printf
 
 function read_input(filename)
     lines = String[]
@@ -92,6 +93,15 @@ function calc_seats(vec, num, p2=nothing)
     end
 end
 
+function time(f, vec)
+    t0 = time_ns()
+    res = f(vec)
+    t1 = time_ns()
+    diff = (t1 - t0) / 1000000
+    @printf("(%ims)\t%i\n", diff, res)
+end
+
+
 function part_one(vec)
     calc_seats(vec, 4)
 end
@@ -102,5 +112,5 @@ end
 
 
 input = read_input("input")
-println(part_one(input))
-println(part_two(input))
+time(part_one, input)
+time(part_two, input)
