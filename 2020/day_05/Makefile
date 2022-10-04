@@ -1,2 +1,2 @@
 all:
-	@ocaml main.ml
+	@ocaml unix.cma main.ml
