@@ -74,9 +74,15 @@
     
 (defn part-two []
   (- (count-bags my-map) 1))
+
+(defn time-func [f]
+  (let [start (System/currentTimeMillis)
+         res (f)
+         end (System/currentTimeMillis)]
+     (str "(" (- end start) "ms)\t" res)))
     
 (defn main []
-  (println (part-one))
-  (println (part-two)))
+  (println (time-func part-one))
+  (println (time-func part-two)))
     
 (main)

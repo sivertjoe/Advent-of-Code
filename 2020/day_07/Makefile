@@ -1,2 +1,2 @@
 all:
-	@clj -M main.clj
+	@clojure -M main.clj
