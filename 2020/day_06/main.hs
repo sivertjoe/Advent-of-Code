@@ -1,4 +1,6 @@
 import Data.List
+import Text.Printf
+import System.CPUTime (getCPUTime)
 
 --         xs        res  list  init   sum           update
 count :: [String] -> Int -> i -> i -> (i -> Int) -> (i -> String -> i) -> Int
@@ -22,7 +24,23 @@ partTwo lines =
     (maybe 0 (length . nub))
     (\list str -> maybe (Just str) (Just . (intersect str)) list)
 
+myRound x = fromIntegral $ round  x
+
+time :: ([String] -> Int) -> [String] -> IO Int
+time f arg = do
+    start <- getCPUTime
+    let v = f arg
+    end <- getCPUTime
+    let diff = myRound $ (fromIntegral (end - start)) / (10^9)
+    -- printf "(%0.3fms)\t"  (diff :: Double)
+    printf "(%dms)\t" (diff :: Int)
+
+    return v
+
+
 main = do
   lines <- fmap lines (readFile "input")
-  print $ partOne lines
-  print $ partTwo lines
+  p1 <- time partOne lines
+  print p1
+  p2 <- time partTwo lines
+  print p2
