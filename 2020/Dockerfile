@@ -43,4 +43,8 @@ RUN pacman -S --noconfirm julia
 # Lua
 RUN pacman -S --noconfirm lua
 
+# Nim
+RUN pacman -S --noconfirm nim
+
+
 CMD cd /out && make

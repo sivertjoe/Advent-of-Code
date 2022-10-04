@@ -1,6 +1,10 @@
 import strutils
 import sequtils
 import std/enumerate
+import std/monotimes
+from times import inMilliseconds
+import std/strformat
+import sugar
 
 proc read_input(): (int, seq[(int, int)]) =
     let content = readFile("input");
@@ -47,6 +51,18 @@ proc part_two(list: seq[(int, int)]): int =
     # Nim mod is kind of weird
     ((sum mod N) + N) mod N
 
+proc time[T](f: (seq[T]) -> int, list: seq[T]) =
+    let t0 = getMonotime();
+    let res = f(list);
+    let diff = (getMonotime() - t0).inMilliseconds;
+    echo fmt"({diff}ms)    {res}";
+
+
 let (num, list) = read_input();
-echo part_one(num, list.map(proc(x: (int, int)): int = x[1]));
-echo part_two(list);
+
+let ll = list.map(proc(x: (int, int)): int = x[1])
+let f = proc(list: seq[int]): int =
+    part_one(num, list)
+
+time(f, ll)
+time(part_two, list)
