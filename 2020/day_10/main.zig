@@ -37,12 +37,12 @@ fn cmpU32(context: void, a: u32, b: u32) bool
 }
 
 
-fn partOne(array: []u32) u32 
+fn partOne(array: []u32) u64
 {
     var len = array.len;
-    var i: u32 = 1;
+    var i: u64 = 1;
     
-    var diffs = [3]u32{0, 0, 0};
+    var diffs = [3]u64{0, 0, 0};
     
     while(i < len)
     {
@@ -93,6 +93,16 @@ fn partTwo(array: []u32) u64
     return _partTwo(array, idx, target, &map);
 }
 
+fn time(f: fn([]u32) u64, arg: []u32) !void
+{
+    var sw = try std.time.Timer.start();
+    var t0 = sw.read();
+    var res = f(arg);
+    var t1 = sw.read();
+    var diff = (t1-t0) / 1000000;
+    try stdout.print("({}ms)\t{}\n", .{diff, res});
+}
+
 pub fn main() !void {
     var array = try readFile("input");
     defer array.deinit();
@@ -100,6 +110,6 @@ pub fn main() !void {
     var list = array.toOwnedSlice();
     std.sort.sort(u32, list, {}, cmpU32);
     
-    try stdout.print("{}\n", .{partOne(list)});
-    try stdout.print("{}\n", .{partTwo(list)});
+    try time(partOne, list);
+    try time(partTwo, list);
 }
