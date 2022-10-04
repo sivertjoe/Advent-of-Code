@@ -1,4 +1,4 @@
 all:
-	@gcc main.c -o main
+	@gcc main.c -Ofast -o main
 	@./main input
 	@rm main
