@@ -5,6 +5,8 @@ import "core:os"
 import "core:strings"
 import "core:slice"
 import "core:strconv"
+import "core:time"
+import "core:math"
 
 read_file :: proc() -> []int 
 {
@@ -85,11 +87,23 @@ part_two :: proc(input: []int) -> int
 	return slice.min(fin) + slice.max(fin)
 }
 
+timeFunc :: proc(f: proc($A)->$U, arg: A)
+{
+    sw : time.Stopwatch
+    time.stopwatch_start(&sw)
+    res := f(arg)
+    time.stopwatch_stop(&sw)
+
+    dur := time.stopwatch_duration(sw)
+    duration := cast(u32)math.round(time.duration_milliseconds(dur))
+    fmt.printf("(%dms)\t%v\n", duration, res)
+}
+
 main :: proc() 
 {
 	array := read_file()
 	defer delete(array)
 	
-	fmt.println(part_one(array))
-	fmt.println(part_two(array))
+    timeFunc(part_one, array)
+    timeFunc(part_two, array)
 }
