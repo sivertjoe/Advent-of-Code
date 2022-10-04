@@ -62,6 +62,13 @@
                             (setf (car (nth curr lines)) cmd)
                             (find-corrupted lines (+ 1 curr)))))))))
 
+(defun my-timer (f)
+  (let* ((t0 (get-internal-real-time))
+        (res (funcall f))
+        (t1 (get-internal-real-time))
+        (elapsed (round (/ (- t1 t0) 1000))))
+    (format nil "(~dms)~a~a" elapsed #\tab res)))
+
 (defun part-one ()
     (find-inf *lines*))
 
@@ -69,7 +76,7 @@
     (find-corrupted *lines* 0))
 
 (defun main()
-    (format t "~a~%" (part-one))
-    (format t "~a~%" (part-two)))
+    (format t "~a~%" (my-timer #'part-one))
+    (format t "~a~%" (my-timer #'part-two)))
 
 (main)
