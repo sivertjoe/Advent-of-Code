@@ -1,5 +1,15 @@
-part_one();
-part_two();
+use Time::HiRes qw(time);
+
+time_func(\&part_one);
+time_func(\&part_two);
+
+sub time_func {
+    my $f = shift;
+    my $start = time();
+    my $ans = $f->();
+    my $elapsed = time() - $start;
+    printf("(%dms)\t%d\n", $elapsed * 1000, $ans);
+}
 
 sub part_two {
     open(my $fh, "<", "input")
@@ -16,7 +26,7 @@ sub part_two {
         }
     }
     check2(\%hash, \$counter);    # Don't forget the last passport!
-    print "$counter\n";
+    return $counter;
 }
 
 sub check2 {
@@ -90,7 +100,7 @@ sub part_one {
         }
     }
     check(\%hash, \$counter);    # Don't forget the last passport!
-    print "$counter\n";
+    return $counter;
 }
 
 sub add_line {
