@@ -2,6 +2,7 @@
 (load "../util/arrows.lisp")
 (load "../util/string.lisp")
 (load "../util/template.lisp")
+(load "../util/function.lisp")
 
 (defun get-input (filename)
   (->> filename
