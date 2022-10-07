@@ -1,9 +1,10 @@
-FROM archlinux/archlinux:latest
-RUN pacman -Syu
+FROM greyltc/archlinux-aur
+
+RUN pacman -Syu --noconfirm
 
 # Install make + gcc/g++
 RUN pacman -Sy --noconfirm base-devel
-#
+
 # Install node for javascript
 RUN pacman -S --noconfirm nodejs
 #
@@ -45,6 +46,9 @@ RUN pacman -S --noconfirm lua
 
 # Nim
 RUN pacman -S --noconfirm nim
+
+# Swift
+RUN aur-install swift-bin
 
 
 CMD cd /out && make
