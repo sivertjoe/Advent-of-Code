@@ -1,17 +1,5 @@
 use std::{path::Path, process::Command};
 
-fn build(path: &str)
-{
-    let p = format!("./{}/compile.sh", &path);
-    let p = std::path::Path::new(&p);
-    let root = p.parent().unwrap().parent().unwrap().to_str().unwrap();
-    
-    Command::new(format!("./{}/compile.sh", root))
-        .arg(path)
-        .output()
-        .unwrap();
-}
-
 fn get_num(s: &str) -> Option<i32>
 {
     let l = s.find('(')? + 1;
@@ -20,33 +8,29 @@ fn get_num(s: &str) -> Option<i32>
     s[l..r - 2].parse::<i32>().ok()
 }
 
-fn run(path: &str) -> (i32, i32)
+fn execute(path: &str) -> String 
 {
-    let f = Command::new("./main").arg("input").current_dir(path).output().unwrap();
-    let out = std::str::from_utf8(&f.stdout).unwrap();
-    assert!(f.status.success());
+    let p = format!("./{}/exec.sh", &path);
+    let p = std::path::Path::new(&p);
+    let root = p.parent().unwrap().parent().unwrap().to_str().unwrap();
+    
+    let output = Command::new(format!("./{}/exec.sh", root))
+        .args([path, "input"])
+        .output()
+        .expect(&format!("Failed to run exec for day {}", path));
+    assert!(output.status.success());
 
-    out.split_once('\n')
-        .map(|(a, b)| (get_num(a).unwrap(), get_num(b).unwrap_or(-1)))
-        .unwrap()
-}
-
-fn clean(path: &str)
-{
-    let f = Command::new("rm").arg("main").current_dir(path).output().unwrap();
-    assert!(f.status.success());
+    String::from_utf8(output.stdout).unwrap()
 }
 
 fn build_and_run(path: &Path) -> (i32, i32)
 {
     let path = path.as_os_str().to_str().unwrap();
+    let out = execute(path);
 
-    build(path);
-
-    let res = run(path);
-    clean(path);
-
-    res
+    out.split_once('\n')
+        .map(|(a, b)| (get_num(a).unwrap(), get_num(b).unwrap_or(-1)))
+        .unwrap()
 }
 
 fn main()
