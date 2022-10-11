@@ -194,23 +194,21 @@
 (defun shortest-paths (map from)
   (let ((visited (make-hash-table :test 'equal))
         (dist (make-hash-table :test 'equal))
-        (q (make-queue :initial-contents (list (list from 0))))
-        (nd t))
+        (q (make-queue :initial-contents (list (list from 0)))))
     (setf (gethash (list 0 0) visited ) t)
 
     (loop
+      for nd = (queue-pop q)
+      while nd
+      finally (return dist)
       do (progn
-           (setf nd (queue-pop q))
-           (if (not nd)
-             (return dist)
-             (progn
-               (setf (gethash (car nd) dist) (cadr nd))
-               (loop for nbr in 
-                     (remove-if (lambda (x) (gethash x visited))(neighbors (car nd)))
-                     do (progn 
-                           (setf (gethash nbr visited) t)
-                           (if (not (= (gethash nbr map) *wall*))
-                             (queue-push (list nbr (1+ (cadr nd))) q))))))))))
+           (setf (gethash (car nd) dist) (cadr nd))
+           (loop for nbr in
+                 (remove-if (lambda (x) (gethash x visited))(neighbors (car nd)))
+                 do (progn
+                      (setf (gethash nbr visited) t)
+                      (if (not (= (gethash nbr map) *wall*))
+                        (queue-push (list nbr (1+ (cadr nd))) q))))))))
 
 (defun key-val (ht)
   (loop for k being the hash-keys in ht using (hash-value v)
