@@ -52,6 +52,7 @@ fn build_and_run(path: &Path) -> (i32, i32)
 fn main()
 {
     let folder = std::env::args().nth(1).expect("Usage: ./count <year path>");
+    let number_of_runs: i32 = std::env::args().nth(2).unwrap_or("1".into()).parse().unwrap();
 
 
     let mut silver = Vec::new();
@@ -67,7 +68,34 @@ fn main()
 
         if path.exists()
         {
-            let (s, g) = build_and_run(path);
+            let mut part_one = Vec::new();
+            let mut part_two = Vec::new();
+
+            for _ in 0..number_of_runs 
+            {
+                let (s, g) = build_and_run(path);
+                part_one.push(s);
+                if g != -1
+                {
+                    part_two.push((day, g));
+                }
+            }
+            // Calculate the average result
+            let len = part_one.len() as i32;
+            let total: i32 = part_one.into_iter().sum();
+
+            let s = total / len;
+
+            let g = 
+                if part_two.len() == 0 { -1 } 
+                else 
+                {
+                    let len = part_two.len() as i32;
+                    let total: i32 = part_two.into_iter().map(|(_, time)| time).sum();
+
+                    total / len
+                };
+
             silver.push((day, s));
             if g != -1
             {
@@ -97,7 +125,8 @@ fn main()
         println!("Days not completed: {}", s);
     }
 
-    println!("STATS:\n");
+    println!("STATS:");
+    println!("Number of runs: {number_of_runs}:\n");
     print_info(Task::Silver, &silver);
     print_info(Task::Gold, &gold);
 
