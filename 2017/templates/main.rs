@@ -1,3 +1,22 @@
+use std::collections::*;
+
+fn task_one(input: &[String]) -> i32
+{
+    unimplemented!()
+}
+
+fn task_two(input: &[String]) -> i32
+{
+    unimplemented!()
+}
+
+fn main()
+{
+    let input = read_input(get_input_file());
+    time(Task::One, task_one, &input);
+    time(Task::Two, task_two, &input);
+}
+
 fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
@@ -40,21 +59,4 @@ where
 fn get_input_file() -> String
 {
     std::env::args().nth(1).unwrap_or_else(|| "input".to_string())
-}
-
-fn main()
-{
-    let input = read_input(get_input_file());
-    time(Task::One, task_one, &input);
-    time(Task::Two, task_two, &input);
-}
-
-fn task_one(input: &[String]) -> i32
-{
-    unimplemented!()
-}
-
-fn task_two(input: &[String]) -> i32
-{
-    unimplemented!()
 }
