@@ -16,51 +16,45 @@ fn split(line: &String) -> (&str, Vec<&str>)
 #[derive(Debug)]
 struct Tree
 {
-    name:     String,
     weight:   u32,
     children: Vec<String>,
 }
 
 fn create_tree(input: &[String]) -> HashMap<String, Tree>
 {
-    let mut map = HashMap::new();
-    for node in input.into_iter().map(|line| {
-        if line.contains("->")
-        {
-            let (node, children) = line.split_once("->").unwrap();
-            let children = children
-                .split_whitespace()
-                .filter(|word| !word.is_empty())
-                .map(|word| word.trim_matches(',').to_string())
-                .collect();
+    input
+        .iter()
+        .map(|line| {
+            if line.contains("->")
+            {
+                let (node, children) = line.split_once("->").unwrap();
+                let children = children
+                    .split_whitespace()
+                    .filter(|word| !word.is_empty())
+                    .map(|word| word.trim_matches(',').to_string())
+                    .collect();
 
-            let (name, weight) = node.split_once(" ").unwrap();
-            let name = name.to_string();
-            let weight = weight[1..weight.len() - 2].parse::<u32>().unwrap();
+                let (name, weight) = node.split_once(' ').unwrap();
+                let name = name.to_string();
+                let weight = weight[1..weight.len() - 2].parse::<u32>().unwrap();
 
-            Tree {
-                name,
-                weight,
-                children,
+                (name, Tree {
+                    weight,
+                    children,
+                })
             }
-        }
-        else
-        {
-            let (name, weight) = line.split_once(" ").unwrap();
-            let name = name.to_string();
-            let weight = weight[1..weight.len() - 1].parse::<u32>().unwrap();
-            Tree {
-                name,
-                weight,
-                children: Vec::new(),
+            else
+            {
+                let (name, weight) = line.split_once(' ').unwrap();
+                let name = name.to_string();
+                let weight = weight[1..weight.len() - 1].parse::<u32>().unwrap();
+                (name, Tree {
+                    weight,
+                    children: Vec::new(),
+                })
             }
-        }
-    })
-    {
-        map.insert(node.name.clone(), node);
-    }
-
-    map
+        })
+        .collect()
 }
 
 fn find_root_node(input: &[String]) -> String
@@ -142,16 +136,16 @@ fn diff(ws: &[u32]) -> i32
 fn rec<'map>(root: String, prev: Option<&'map Tree>, map: &'map HashMap<String, Tree>) -> u32
 {
     let node = map.get(&root).unwrap();
-    let weights = ws(&node, map);
+    let weights = ws(node, map);
     if all_equal(&weights)
     {
         let prev_weights = ws(prev.unwrap(), map);
         let diff = diff(&prev_weights);
-        return (node.weight as i32 - diff) as u32;
+        (node.weight as i32 - diff) as u32
     }
     else
     {
-        let unique = unique(&node, &weights);
+        let unique = unique(node, &weights);
         rec(unique, Some(node), map)
     }
 }

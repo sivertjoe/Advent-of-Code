@@ -50,7 +50,7 @@ fn main()
 fn task_one(input: &[String]) -> usize
 {
     input
-        .into_iter()
+        .iter()
         .filter(|line| {
             let split: Vec<&str> = line.split_whitespace().collect();
             let len = split.len();
@@ -62,7 +62,7 @@ fn task_one(input: &[String]) -> usize
 fn task_two(input: &[String]) -> usize
 {
     input
-        .into_iter()
+        .iter()
         .filter(|line| {
             let split: Vec<&str> = line.split_whitespace().collect();
             let len = split.len();
@@ -72,7 +72,7 @@ fn task_two(input: &[String]) -> usize
                 let mut arr = [0u8; 26];
                 for ch in word.bytes()
                 {
-                    let idx = (ch - 'a' as u8) as usize;
+                    let idx = (ch - b'a') as usize;
                     arr[idx] += 1;
                 }
                 set.insert(arr);

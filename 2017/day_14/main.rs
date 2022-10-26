@@ -11,9 +11,7 @@ fn round(list: &mut [usize], input: &[usize], current_pos: &mut usize, skip_size
         let mut start = *current_pos;
         for _ in 0..length / 2
         {
-            let temp = list[end];
-            list[end] = list[start];
-            list[start] = temp;
+            list.swap(start, end);
 
             end = (end as i32 - 1).rem_euclid(N as i32) as usize;
             start = (start + 1) % N;
@@ -66,7 +64,7 @@ fn calc_row(input: &str, num: i32) -> Vec<i32>
 fn create_matrix(input: &str) -> Matrix<i32>
 {
     let calc_row = |row: i32| calc_row(input, row);
-    let vec = (0..128).into_iter().map(|row| calc_row(row)).flatten().collect::<Vec<i32>>();
+    let vec = (0..128).into_iter().flat_map(calc_row).collect::<Vec<i32>>();
     let dim = (128, 128);
     Matrix {
         dim,
@@ -180,11 +178,11 @@ where
         {
             if i % self.dim.0 == 0
             {
-                println!("");
+                println!();
             }
             print!("{}", self.vec[i]);
         }
-        println!("");
+        println!();
     }
 }
 

@@ -9,9 +9,7 @@ fn round(list: &mut [usize], input: &[usize], current_pos: &mut usize, skip_size
         let mut start = *current_pos;
         for _ in 0..length / 2
         {
-            let temp = list[end];
-            list[end] = list[start];
-            list[start] = temp;
+            list.swap(start, end);
 
             end = (end as i32 - 1).rem_euclid(N as i32) as usize;
             start = (start + 1) % N;

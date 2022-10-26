@@ -21,7 +21,7 @@ fn parse_line(line: &String) -> (usize, usize)
 
 fn task_one(input: &[String]) -> usize
 {
-    let vec: Vec<(usize, usize)> = input.into_iter().map(parse_line).collect();
+    let vec: Vec<(usize, usize)> = input.iter().map(parse_line).collect();
 
     let mut sum = 0;
     for (i, v) in vec
@@ -37,7 +37,7 @@ fn task_one(input: &[String]) -> usize
 
 fn task_two(input: &[String]) -> usize
 {
-    let vec: Vec<(usize, usize)> = input.into_iter().map(parse_line).collect();
+    let vec: Vec<(usize, usize)> = input.iter().map(parse_line).collect();
 
     for offset in 0..
     {

@@ -1,8 +1,6 @@
-use std::collections::*;
-
 fn solve(input: &[String], f: impl Fn(&mut i32)) -> usize
 {
-    let mut input: Vec<i32> = input.into_iter().map(|token| token.parse().unwrap()).collect();
+    let mut input: Vec<i32> = input.iter().map(|token| token.parse().unwrap()).collect();
     let mut idx = 0;
     let mut steps = 0;
 

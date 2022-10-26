@@ -48,7 +48,7 @@ fn main()
 fn solve(input: &[String], f: impl Fn(&[i32]) -> i32) -> i32
 {
     input
-        .into_iter()
+        .iter()
         .map(|line| {
             let nums: Vec<i32> =
                 line.split_whitespace().map(|token| token.parse().unwrap()).collect();

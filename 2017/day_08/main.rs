@@ -25,7 +25,7 @@ struct Instruction
 fn parse(input: &[String]) -> Vec<Instruction>
 {
     input
-        .into_iter()
+        .iter()
         .map(|line| {
             // rz inc -592 if m <= 1
             let mut iter = line.split_whitespace();

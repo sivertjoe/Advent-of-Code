@@ -3,7 +3,7 @@ use std::collections::*;
 fn parse(input: &[String]) -> Vec<Vec<usize>>
 {
     input
-        .into_iter()
+        .iter()
         .map(|line| {
             line.split_once("<-> ")
                 .unwrap()

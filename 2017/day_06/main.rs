@@ -13,7 +13,14 @@ fn solve(input: &[String]) -> (usize, usize)
             .iter()
             .enumerate()
             .max_by(|(_, a), (_, b)| {
-                (a >= b).then_some(Ordering::Greater).unwrap_or(Ordering::Less)
+                if a >= b
+                {
+                    Ordering::Greater
+                }
+                else
+                {
+                    Ordering::Less
+                }
             })
             .unwrap()
             .0;

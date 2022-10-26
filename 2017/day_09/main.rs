@@ -8,13 +8,7 @@ enum Count
 
 fn parse(s: &str, score: i32, count: Count) -> Option<(&str, i32)>
 {
-    let ch = s.chars().next();
-    if ch.is_none()
-    {
-        return None;
-    }
-
-    match s.chars().next().unwrap()
+    match s.chars().next()?
     {
         '{' => Some(sum(&s[1..], if let Count::Garbage = count { 0 } else { score + 1 }, count)),
         '}' => None,
@@ -45,7 +39,7 @@ fn parse(s: &str, score: i32, count: Count) -> Option<(&str, i32)>
             {
                 sum = 0;
             }
-            if s.len() >= 1
+            if !s.is_empty()
             {
                 Some((&s[1..], sum))
             }
@@ -72,7 +66,7 @@ fn sum(s: &str, score: i32, count: Count) -> (&str, i32)
         s = new_s;
         sum += inc_sum;
     }
-    if s.len() >= 1
+    if !s.is_empty()
     {
         (&s[1..], sum)
     }
