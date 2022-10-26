@@ -1,19 +1,18 @@
-type MatItem = i32;
-
-struct Matrix
+struct Matrix<T>
 {
-    vec: Vec<MatItem>,
-    dim: (i32, i32),
+    vec: Vec<T>,
+    dim: (usize, usize),
 }
 
-impl Matrix
+impl<T> Matrix<T>
+where T: std::fmt::Display
 {
     #[allow(dead_code)]
     fn print(&self)
     {
         for i in 0..self.vec.len()
         {
-            if i as i32 % self.dim.0 == 0
+            if i % self.dim.0 == 0
             {
                 println!("");
             }
@@ -24,22 +23,23 @@ impl Matrix
 }
 
 
-impl std::ops::Index<[i32; 2]> for Matrix
+impl<T> std::ops::Index<[usize; 2]> for Matrix<T>
 {
-    type Output = MatItem;
+    type Output = T;
 
-    fn index(&self, idx: [i32; 2]) -> &Self::Output
+    fn index(&self, idx: [usize; 2]) -> &Self::Output
     {
         let idx = ((idx[1] * self.dim.0) as usize) + idx[0] as usize;
         &self.vec[idx]
     }
 }
 
-impl std::ops::IndexMut<[i32; 2]> for Matrix
+impl<T> std::ops::IndexMut<[usize; 2]> for Matrix<T>
 {
-    fn index_mut(&mut self, idx: [i32; 2]) -> &mut Self::Output
+    fn index_mut(&mut self, idx: [usize; 2]) -> &mut Self::Output
     {
         let idx = ((idx[1] * self.dim.0) as usize) + idx[0] as usize;
         &mut self.vec[idx]
     }
 }
+
