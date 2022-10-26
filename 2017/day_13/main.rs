@@ -28,7 +28,7 @@ fn task_one(input: &[String]) -> usize
     {
         if i % v == 0
         {
-            sum += i * (v/2 + 1);
+            sum += i * (v / 2 + 1);
         }
     }
 
@@ -39,7 +39,7 @@ fn task_two(input: &[String]) -> usize
 {
     let vec: Vec<(usize, usize)> = input.into_iter().map(parse_line).collect();
 
-    for offset in 0.. 
+    for offset in 0..
     {
         if !collide(&vec, offset)
         {
@@ -60,11 +60,7 @@ fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
 {
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().lines().map(String::from).collect()
 }
 
 enum Task

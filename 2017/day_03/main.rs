@@ -4,11 +4,7 @@ fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
 {
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().lines().map(String::from).collect()
 }
 
 enum Task
@@ -57,29 +53,29 @@ fn func(n: i32) -> (i32, i32)
 {
     let n = n - 1;
     let n_root = (n as f32).sqrt().floor() as i32;
-    let nh = if n_root % 2 == 0 { n_root } else { n_root - 1};
-    let nh2 = nh*nh;
+    let nh = if n_root % 2 == 0 { n_root } else { n_root - 1 };
+    let nh2 = nh * nh;
 
-    if nh2 <= n && n <= nh2 + nh 
+    if nh2 <= n && n <= nh2 + nh
     {
-        return (-(nh / 2) + n - nh2, nh / 2)
+        return (-(nh / 2) + n - nh2, nh / 2);
     }
     else if nh2 + nh < n && n <= nh2 + 2 * nh + 1
     {
-        return (nh / 2, nh / 2 - n + nh2 + nh)
+        return (nh / 2, nh / 2 - n + nh2 + nh);
     }
-    else if nh2 + 2 * nh + 1 < n && n <= nh2 + 3 * nh + 2 
+    else if nh2 + 2 * nh + 1 < n && n <= nh2 + 3 * nh + 2
     {
-        return (nh / 2 - n + nh2 + 2 * nh + 1, -nh / 2 -1)
+        return (nh / 2 - n + nh2 + 2 * nh + 1, -nh / 2 - 1);
     }
     else if nh2 + 3 * nh + 2 < n && n <= nh2 + 4 * nh + 3
     {
-        return (-nh/2-1, -nh / 2 - 1 + n - nh2 - 3 * nh - 2)
+        return (-nh / 2 - 1, -nh / 2 - 1 + n - nh2 - 3 * nh - 2);
     }
     unreachable!()
 }
 
-fn manhattan_distance(p: (i32, i32)) -> i32 
+fn manhattan_distance(p: (i32, i32)) -> i32
 {
     p.0.abs() + p.1.abs()
 }
@@ -102,7 +98,10 @@ fn neighbors(p: &(i32, i32), map: &HashMap<(i32, i32), i32>) -> i32
     {
         for x in -1..=1
         {
-            if y == 0 && x == 0 { continue; }
+            if y == 0 && x == 0
+            {
+                continue;
+            }
             let p = point_add(*p, (x, y));
             sum += *map.get(&p).unwrap_or(&0);
         }

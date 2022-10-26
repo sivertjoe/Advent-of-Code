@@ -7,7 +7,7 @@ fn round(list: &mut [usize], input: &[usize], current_pos: &mut usize, skip_size
     {
         let mut end = (*current_pos + length - 1) % N;
         let mut start = *current_pos;
-        for _ in 0..length/2
+        for _ in 0..length / 2
         {
             let temp = list[end];
             list[end] = list[start];
@@ -36,16 +36,19 @@ fn task_two(input: &[String]) -> String
     let mut skip_size = 0;
 
     let input = input[0].clone();
-    let input: Vec<usize> = input.bytes().map(|b| b as usize).chain(vec![17, 31, 73, 47, 23].into_iter()).collect();
+    let input: Vec<usize> = input
+        .bytes()
+        .map(|b| b as usize)
+        .chain(vec![17, 31, 73, 47, 23].into_iter())
+        .collect();
 
     for _ in 0..64
     {
         round(&mut list, &input, &mut current_pos, &mut skip_size);
     }
 
-    
-    list
-        .chunks(16)
+
+    list.chunks(16)
         .map(|range| range.iter().cloned().reduce(|acc, item| acc ^ item).unwrap())
         .fold(String::new(), |acc, item| format!("{}{:02x}", acc, item))
 }
@@ -61,11 +64,7 @@ fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
 {
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().lines().map(String::from).collect()
 }
 
 enum Task

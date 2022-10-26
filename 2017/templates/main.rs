@@ -21,11 +21,7 @@ fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
 {
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().lines().map(String::from).collect()
 }
 
 enum Task

@@ -3,20 +3,23 @@
 enum Count
 {
     Score,
-    Garbage
+    Garbage,
 }
 
 fn parse(s: &str, score: i32, count: Count) -> Option<(&str, i32)>
 {
     let ch = s.chars().next();
-    if ch.is_none() { return None; }
+    if ch.is_none()
+    {
+        return None;
+    }
 
-    match s.chars().next().unwrap() 
+    match s.chars().next().unwrap()
     {
         '{' => Some(sum(&s[1..], if let Count::Garbage = count { 0 } else { score + 1 }, count)),
         '}' => None,
         ',' => Some((&s[1..], 0)),
-        '<' => 
+        '<' =>
         {
             let mut sum = 0;
             let mut s = &s[1..];
@@ -29,16 +32,16 @@ fn parse(s: &str, score: i32, count: Count) -> Option<(&str, i32)>
                 {
                     s = &s[2..];
                 }
-                else 
+                else
                 {
                     sum += 1;
                     s = &s[1..];
                 }
                 ch = s.chars().next().unwrap();
             }
-        
 
-            if let Count::Score = count 
+
+            if let Count::Score = count
             {
                 sum = 0;
             }
@@ -46,31 +49,34 @@ fn parse(s: &str, score: i32, count: Count) -> Option<(&str, i32)>
             {
                 Some((&s[1..], sum))
             }
-            else 
+            else
             {
                 Some((s, sum))
             }
-
-        }
-        _ => unreachable!()
+        },
+        _ => unreachable!(),
     }
 }
 
 fn sum(s: &str, score: i32, count: Count) -> (&str, i32)
 {
     let mut s = s;
-    let mut sum = match count { Count::Score => score, _ => 0 };
+    let mut sum = match count
+    {
+        Count::Score => score,
+        _ => 0,
+    };
 
     while let Some((new_s, inc_sum)) = parse(s, score, count)
     {
         s = new_s;
         sum += inc_sum;
     }
-    if s.len() >= 1 
+    if s.len() >= 1
     {
         (&s[1..], sum)
     }
-    else 
+    else
     {
         (s, sum)
     }
@@ -97,11 +103,7 @@ fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
 {
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().lines().map(String::from).collect()
 }
 
 enum Task

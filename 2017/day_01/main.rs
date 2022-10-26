@@ -2,11 +2,7 @@ fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
 {
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().lines().map(String::from).collect()
 }
 
 enum Task
@@ -50,17 +46,12 @@ fn main()
 }
 
 fn solve(input: &[String], inc: usize) -> u32
-{    
-    let nums: Vec<u32> = input[0]
-                            .chars()
-                            .flat_map(|c| c.to_digit(10))
-                            .collect();
+{
+    let nums: Vec<u32> = input[0].chars().flat_map(|c| c.to_digit(10)).collect();
     let len = nums.len();
-    nums
-        .iter()
+    nums.iter()
         .enumerate()
-        .filter_map(|(i, current)|
-        {
+        .filter_map(|(i, current)| {
             let next = nums[(i + inc) % len];
             (*current == next).then_some(current)
         })

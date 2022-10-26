@@ -1,19 +1,22 @@
-use std::collections::*;
-use std::cmp::Ordering;
+use std::{cmp::Ordering, collections::*};
 
 fn solve(input: &[String]) -> (usize, usize)
-{    
-    let mut nums: Vec<usize> = input[0].split_whitespace().map(|token|token.parse().unwrap()).collect();
+{
+    let mut nums: Vec<usize> =
+        input[0].split_whitespace().map(|token| token.parse().unwrap()).collect();
     let mut seen = HashMap::new();
     seen.insert(nums.clone(), 0);
 
     for cycles in 1..
     {
         let idx = nums
-                   .iter()
-                   .enumerate()
-                   .max_by(|(_, a), (_, b)| (a >= b).then_some(Ordering::Greater).unwrap_or(Ordering::Less))
-                   .unwrap().0;
+            .iter()
+            .enumerate()
+            .max_by(|(_, a), (_, b)| {
+                (a >= b).then_some(Ordering::Greater).unwrap_or(Ordering::Less)
+            })
+            .unwrap()
+            .0;
 
         let high = nums[idx];
         nums[idx] = 0;
@@ -56,11 +59,7 @@ fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
 {
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().lines().map(String::from).collect()
 }
 
 enum Task

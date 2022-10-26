@@ -5,7 +5,8 @@ struct Matrix<T>
 }
 
 impl<T> Matrix<T>
-where T: std::fmt::Display
+where
+    T: std::fmt::Display,
 {
     #[allow(dead_code)]
     fn print(&self)
@@ -14,11 +15,11 @@ where T: std::fmt::Display
         {
             if i % self.dim.0 == 0
             {
-                println!("");
+                println!();
             }
             print!("{}", self.vec[i]);
         }
-        println!("");
+        println!();
     }
 }
 
@@ -42,4 +43,3 @@ impl<T> std::ops::IndexMut<[usize; 2]> for Matrix<T>
         &mut self.vec[idx]
     }
 }
-

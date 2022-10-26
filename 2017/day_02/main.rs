@@ -2,11 +2,7 @@ fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
 {
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().lines().map(String::from).collect()
 }
 
 enum Task
@@ -53,9 +49,9 @@ fn solve(input: &[String], f: impl Fn(&[i32]) -> i32) -> i32
 {
     input
         .into_iter()
-        .map(|line|
-        {
-            let nums: Vec<i32> = line.split_whitespace().map(|token| token.parse().unwrap()).collect();
+        .map(|line| {
+            let nums: Vec<i32> =
+                line.split_whitespace().map(|token| token.parse().unwrap()).collect();
             f(&nums)
         })
         .sum()
@@ -68,10 +64,14 @@ fn task_one(input: &[String]) -> i32
 
 fn find_divisible(nums: &[i32]) -> i32
 {
-    for num1 in nums 
+    for num1 in nums
     {
-        for num2 in nums {
-            if num1 == num2 { continue; }
+        for num2 in nums
+        {
+            if num1 == num2
+            {
+                continue;
+            }
             if num1 % num2 == 0
             {
                 return num1 / num2;

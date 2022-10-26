@@ -4,11 +4,7 @@ fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
 {
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().lines().map(String::from).collect()
 }
 
 enum Task
@@ -55,8 +51,7 @@ fn task_one(input: &[String]) -> usize
 {
     input
         .into_iter()
-        .filter(|line|
-        {
+        .filter(|line| {
             let split: Vec<&str> = line.split_whitespace().collect();
             let len = split.len();
             split.into_iter().collect::<HashSet<&str>>().len() == len
@@ -68,8 +63,7 @@ fn task_two(input: &[String]) -> usize
 {
     input
         .into_iter()
-        .filter(|line|
-        {
+        .filter(|line| {
             let split: Vec<&str> = line.split_whitespace().collect();
             let len = split.len();
             let mut set = HashSet::new();
@@ -84,7 +78,6 @@ fn task_two(input: &[String]) -> usize
                 set.insert(arr);
             }
             set.len() == len
-
         })
         .count()
 }

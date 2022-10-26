@@ -2,9 +2,17 @@ use std::collections::*;
 
 fn parse(input: &[String]) -> Vec<Vec<usize>>
 {
-    input.into_iter()
-         .map(|line| line.split_once("<-> ").unwrap().1.split(", ").map(|token| token.parse().unwrap()).collect::<Vec<_>>())
-         .collect()
+    input
+        .into_iter()
+        .map(|line| {
+            line.split_once("<-> ")
+                .unwrap()
+                .1
+                .split(", ")
+                .map(|token| token.parse().unwrap())
+                .collect::<Vec<_>>()
+        })
+        .collect()
 }
 
 fn task_one(input: &[String]) -> i32
@@ -62,7 +70,7 @@ fn task_two(input: &[String]) -> i32
             }
             stack = new_stack;
         }
-        if flag 
+        if flag
         {
             count += 1;
         }
@@ -82,11 +90,7 @@ fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
 {
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().lines().map(String::from).collect()
 }
 
 enum Task

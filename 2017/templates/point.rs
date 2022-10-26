@@ -4,6 +4,7 @@ struct Point<const N: usize, T>([T; N]);
 impl<const N: usize, T> std::ops::Index<usize> for Point<N, T>
 {
     type Output = T;
+
     fn index(&self, idx: usize) -> &Self::Output
     {
         &self.0[idx]
@@ -19,9 +20,11 @@ impl<const N: usize, T> std::ops::IndexMut<usize> for Point<N, T>
 }
 
 impl<const N: usize, T> std::ops::Add for Point<N, T>
-where T: std::ops::Add<Output=T> + Copy
+where
+    T: std::ops::Add<Output = T> + Copy,
 {
     type Output = Self;
+
     fn add(self, other: Self) -> Self
     {
         use std::mem::{self, MaybeUninit};
@@ -37,11 +40,12 @@ where T: std::ops::Add<Output=T> + Copy
 }
 
 impl<const N: usize, T> std::ops::AddAssign for Point<N, T>
-where T: std::ops::Add<Output=T> + Copy
+where
+    T: std::ops::Add<Output = T> + Copy,
 {
     fn add_assign(&mut self, other: Self)
     {
-        for i in 0..N 
+        for i in 0..N
         {
             self[i] = self[i] + other[i];
         }
@@ -58,4 +62,3 @@ macro_rules! point
         ])
     };
 }
-

@@ -1,6 +1,6 @@
 use std::collections::*;
 
-fn get_operator(operator: &str) -> Box<dyn Fn(i32, i32) -> bool >
+fn get_operator(operator: &str) -> Box<dyn Fn(i32, i32) -> bool>
 {
     match operator
     {
@@ -16,17 +16,17 @@ fn get_operator(operator: &str) -> Box<dyn Fn(i32, i32) -> bool >
 
 struct Instruction
 {
-    reg: String,
+    reg:  String,
     sign: i32,
-    val: i32,
-    func: (String, i32, Box<dyn Fn(i32, i32) -> bool>)
+    val:  i32,
+    func: (String, i32, Box<dyn Fn(i32, i32) -> bool>),
 }
 
 fn parse(input: &[String]) -> Vec<Instruction>
 {
-    input.into_iter()
-         .map(|line|
-         {
+    input
+        .into_iter()
+        .map(|line| {
             // rz inc -592 if m <= 1
             let mut iter = line.split_whitespace();
 
@@ -42,11 +42,10 @@ fn parse(input: &[String]) -> Vec<Instruction>
                 reg,
                 sign,
                 val,
-                func: (cmp_reg, cmp_val, func)
+                func: (cmp_reg, cmp_val, func),
             }
-
-         })
-         .collect()
+        })
+        .collect()
 }
 
 fn execute_instruction(instruction: &Instruction, registers: &mut HashMap<String, i32>)
@@ -54,7 +53,8 @@ fn execute_instruction(instruction: &Instruction, registers: &mut HashMap<String
     let cmp_reg = registers.get(&instruction.func.0).unwrap_or(&0);
     if instruction.func.2(*cmp_reg, instruction.func.1)
     {
-        *registers.entry(instruction.reg.clone()).or_insert(0) += instruction.sign * instruction.val;
+        *registers.entry(instruction.reg.clone()).or_insert(0) +=
+            instruction.sign * instruction.val;
     }
 }
 
@@ -63,7 +63,7 @@ fn task_one(input: &[String]) -> i32
     let ins = parse(input);
     let mut registers = HashMap::new();
 
-    for instruction in ins 
+    for instruction in ins
     {
         execute_instruction(&instruction, &mut registers);
     }
@@ -77,7 +77,7 @@ fn task_two(input: &[String]) -> i32
     let ins = parse(input);
     let mut registers = HashMap::new();
 
-    for instruction in ins 
+    for instruction in ins
     {
         execute_instruction(&instruction, &mut registers);
         let reg_val = registers.get(&instruction.reg).unwrap_or(&0);
@@ -98,11 +98,7 @@ fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
 {
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().lines().map(String::from).collect()
 }
 
 enum Task

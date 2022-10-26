@@ -4,56 +4,58 @@ fn split(line: &String) -> (&str, Vec<&str>)
 {
     let (fst, snd) = line.split_once("->").unwrap();
 
-    (fst.split_whitespace().next().unwrap(), snd.split_whitespace()
-                                                .filter(|word| !word.is_empty())
-                                                .map(|word| word.trim_matches(','))
-                                                .collect())
+    (
+        fst.split_whitespace().next().unwrap(),
+        snd.split_whitespace()
+            .filter(|word| !word.is_empty())
+            .map(|word| word.trim_matches(','))
+            .collect(),
+    )
 }
 
 #[derive(Debug)]
 struct Tree
 {
-    name: String,
-    weight: u32,
-    children: Vec<String>
+    name:     String,
+    weight:   u32,
+    children: Vec<String>,
 }
 
 fn create_tree(input: &[String]) -> HashMap<String, Tree>
 {
     let mut map = HashMap::new();
-    for node in input.into_iter()
-        .map(|line|
+    for node in input.into_iter().map(|line| {
+        if line.contains("->")
         {
-            if line.contains("->")
-            {
-                let (node, children) = line.split_once("->").unwrap();
-                let children = children.split_whitespace()
-                                       .filter(|word| !word.is_empty())
-                                       .map(|word| word.trim_matches(',').to_string())
-                                       .collect();
+            let (node, children) = line.split_once("->").unwrap();
+            let children = children
+                .split_whitespace()
+                .filter(|word| !word.is_empty())
+                .map(|word| word.trim_matches(',').to_string())
+                .collect();
 
-                let (name, weight) = node.split_once(" ").unwrap();
-                let name = name.to_string();
-                let weight = weight[1..weight.len()-2].parse::<u32>().unwrap();
+            let (name, weight) = node.split_once(" ").unwrap();
+            let name = name.to_string();
+            let weight = weight[1..weight.len() - 2].parse::<u32>().unwrap();
 
-                Tree {
-                    name,
-                    weight,
-                    children
-                }
+            Tree {
+                name,
+                weight,
+                children,
             }
-            else
-            {
-                let (name, weight) = line.split_once(" ").unwrap();
-                let name = name.to_string();
-                let weight = weight[1..weight.len()-1].parse::<u32>().unwrap();
-                Tree {
-                    name,
-                    weight,
-                    children: Vec::new()
-                }
+        }
+        else
+        {
+            let (name, weight) = line.split_once(" ").unwrap();
+            let name = name.to_string();
+            let weight = weight[1..weight.len() - 1].parse::<u32>().unwrap();
+            Tree {
+                name,
+                weight,
+                children: Vec::new(),
             }
-        })
+        }
+    })
     {
         map.insert(node.name.clone(), node);
     }
@@ -62,24 +64,21 @@ fn create_tree(input: &[String]) -> HashMap<String, Tree>
 }
 
 fn find_root_node(input: &[String]) -> String
-{    
-    let parents: Vec<(&str, Vec<&str>)> = input
-                                            .iter()
-                                            .filter(|line| line.contains("->"))
-                                            .map(split)
-                                            .collect();
+{
+    let parents: Vec<(&str, Vec<&str>)> =
+        input.iter().filter(|line| line.contains("->")).map(split).collect();
     let mut set = HashSet::new();
-    for (parent, children) in &parents 
+    for (parent, children) in &parents
     {
         set.insert(parent);
-        for ch in children 
+        for ch in children
         {
             set.insert(ch);
         }
     }
-    for (_parent, children) in &parents 
+    for (_parent, children) in &parents
     {
-        for ch in children 
+        for ch in children
         {
             set.remove(ch);
         }
@@ -93,7 +92,7 @@ fn task_one(input: &[String]) -> String
     find_root_node(input)
 }
 
-fn all_equal(arr: &[u32]) -> bool 
+fn all_equal(arr: &[u32]) -> bool
 {
     arr.windows(2).all(|w| w[0] == w[1])
 }
@@ -119,7 +118,7 @@ fn unique(node: &Tree, ws: &[u32]) -> String
     for (i, v) in ws.iter().enumerate()
     {
         let count = ws.iter().filter(|n| *n == v).count();
-        if count == 1 
+        if count == 1
         {
             return node.children[i].clone();
         }
@@ -129,10 +128,10 @@ fn unique(node: &Tree, ws: &[u32]) -> String
 
 fn diff(ws: &[u32]) -> i32
 {
-    for  (i, v) in ws.iter().enumerate()
+    for (i, v) in ws.iter().enumerate()
     {
         let count = ws.iter().filter(|n| *n == v).count();
-        if count == 1 
+        if count == 1
         {
             return *v as i32 - ws[(i + 1) % ws.len()] as i32;
         }
@@ -156,12 +155,12 @@ fn rec<'map>(root: String, prev: Option<&'map Tree>, map: &'map HashMap<String, 
         rec(unique, Some(node), map)
     }
 }
-                                
+
 fn task_two(input: &[String]) -> u32
 {
     let root = find_root_node(input);
     let tree = create_tree(input);
-    rec(root,None, &tree)
+    rec(root, None, &tree)
 }
 
 fn main()
@@ -175,11 +174,7 @@ fn read_input<P>(path: P) -> Vec<String>
 where
     P: AsRef<std::path::Path>,
 {
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().lines().map(String::from).collect()
 }
 
 enum Task
