@@ -1,4 +1,5 @@
 # Solutions for Advent of Code
+### [2016](https://github.com/sivertjoe/Advent-of-Code/tree/master/2016)
 ### [2017](https://github.com/sivertjoe/Advent-of-Code/tree/master/2017)
 ### [2018](https://github.com/sivertjoe/Advent-of-Code/tree/master/2018)
 ### [2019](https://github.com/sivertjoe/Advent-of-Code/tree/master/2019)
