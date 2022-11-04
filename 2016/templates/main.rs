@@ -1,11 +1,11 @@
 use std::collections::*;
 
-fn task_one(input: &[String]) -> i32
+fn task_one(input: &[String]) -> usize
 {
     unimplemented!()
 }
 
-fn task_two(input: &[String]) -> i32
+fn task_two(input: &[String]) -> usize
 {
     unimplemented!()
 }
