@@ -15,6 +15,7 @@
 ### [2019](https://github.com/sivertjoe/Advent-of-Code/tree/master/2019)
 ### [2020](https://github.com/sivertjoe/Advent-of-Code/tree/master/2020)
 ### [2021](https://github.com/sivertjoe/Advent-of-Code/tree/master/2021)
+### [2022](https://github.com/sivertjoe/Advent-of-Code/tree/master/2022)
 
 ## `count.rs`
 Tallies the  performance of part one and two for each day and displays information about the overall performance.
