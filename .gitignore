@@ -1,4 +1,5 @@
 **/main
 **/test
 **/.env
+**/.bench
 count
