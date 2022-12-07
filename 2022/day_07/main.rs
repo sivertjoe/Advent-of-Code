@@ -1,142 +1,134 @@
-use std::{cell::RefCell, collections::*, rc::Rc};
+use std::{
+    collections::*,
+    path::{Path, PathBuf},
+};
 
-
-#[derive(Debug)]
-enum Type
+enum Command
 {
-    File(usize),
-    Dir(HashMap<String, Rc<RefCell<Node>>>),
+    Cd(String),
+    File(usize, String),
+    Dir(String),
 }
 
-#[derive(Debug)]
-struct Node
+fn parse_line(line: &str) -> Option<Command>
 {
-    name:   String,
-    parent: Option<Rc<RefCell<Node>>>,
-    typ:    Type,
-}
-
-fn parse(input: &[String]) -> (Rc<RefCell<Node>>, Vec<Rc<RefCell<Node>>>)
-{
-    use Type::*;
-    let root = Rc::new(RefCell::new(Node {
-        name:   "/".to_string(),
-        parent: None,
-        typ:    Dir(HashMap::new()),
-    }));
-
-    let mut curr = Rc::clone(&root);
-    let mut folders = Vec::new();
-    folders.push(Rc::clone(&root));
-
-    for line in &input[1..]
+    let mut spl = line.split_whitespace();
+    let fst = spl.next().unwrap();
+    if fst == "$"
     {
-        let split = line.split_whitespace().collect::<Vec<_>>();
-        if split[0] == "$"
+        let next = spl.next().unwrap();
+        if next == "ls"
         {
-            if split[1] == "cd"
-            {
-                if split[2] == ".."
-                {
-                    let parent = Rc::clone(curr.borrow().parent.as_ref().unwrap());
-                    curr = parent;
-                }
-                else if split[2] == "/"
-                {
-                    curr = Rc::clone(&root);
-                }
-                else
-                {
-                    // cd x
-                    let name = split[2];
-                    let new = {
-                        let Dir(ref children) = curr.borrow().typ else { panic!() };
-                        let new = children.get(name).unwrap();
-                        Rc::clone(new)
-                    };
-
-                    curr = new;
-                }
-            }
+            None // just ignore the ls value, it is not needed
         }
         else
         {
-            // We can see two things here, a file, or a directory
-
-            let Dir(ref mut children) = curr.borrow_mut().typ else { panic!() };
-
-            // It was a file
-            // children.push(split[1].to_string());
-            let new_node = if let Ok(size) = split[0].parse::<usize>()
-            {
-                Rc::new(RefCell::new(Node {
-                    name:   split[1].to_string(),
-                    parent: Some(curr.clone()),
-                    typ:    File(size),
-                }))
-            }
-            else
-            {
-                assert!(split[0] == "dir");
-                let node = Rc::new(RefCell::new(Node {
-                    name:   split[1].to_string(),
-                    parent: Some(curr.clone()),
-                    typ:    Dir(HashMap::new()),
-                }));
-
-                folders.push(Rc::clone(&node));
-                node
-            };
-            let name = new_node.borrow().name.clone();
-            children.insert(name, new_node);
+            let path = spl.next().unwrap().to_string();
+            Some(Command::Cd(path))
         }
     }
-    (root, folders)
+    else
+    {
+        let path = spl.next().unwrap().to_string();
+        if fst.starts_with("dir")
+        {
+            Some(Command::Dir(path))
+        }
+        else
+        {
+            let size = fst.parse::<usize>().unwrap();
+            Some(Command::File(size, path))
+        }
+    }
 }
 
-fn size(root: Rc<RefCell<Node>>) -> usize
+enum Node
 {
-    let mut sum = 0;
-    let Type::Dir(ref children) = root.borrow().typ else { panic!() };
-    for node in children.values()
+    File(usize),
+    Dir(Vec<PathBuf>),
+}
+
+fn parse(input: &[String]) -> HashMap<PathBuf, Node>
+{
+    let mut map = HashMap::new();
+    let mut curr: PathBuf = "/".into();
+    map.insert(curr.clone(), Node::Dir(Vec::new()));
+    for cmd in input.iter().skip(1).flat_map(|s| parse_line(s))
     {
-        match node.borrow().typ
+        match cmd
         {
-            Type::File(size) =>
+            Command::Cd(path) =>
             {
-                sum += size;
+                if path == ".."
+                {
+                    curr.pop();
+                }
+                else if path == "/"
+                {
+                    curr = "/".into();
+                }
+                else
+                {
+                    curr.push(path);
+                }
             },
-            Type::Dir(_) =>
+            Command::File(size, name) =>
             {
-                sum += size(Rc::clone(node));
+                let folder = map.get_mut(&curr).unwrap();
+                let Node::Dir(ref mut children) = folder else { panic!() };
+                children.push(curr.join(&name));
+
+                map.insert(curr.join(name), Node::File(size));
             },
-        }
+            Command::Dir(name) =>
+            {
+                let folder = map.get_mut(&curr).unwrap();
+                let Node::Dir(ref mut children) = folder else { panic!() };
+                children.push(curr.join(&name));
+
+                map.insert(curr.join(name), Node::Dir(Vec::new()));
+            },
+        };
     }
+    map
+}
 
+fn size(path: &Path, map: &HashMap<PathBuf, Node>) -> usize
+{
+    match map.get(path).unwrap()
+    {
+        Node::File(size) => *size,
+        Node::Dir(children) => children.iter().fold(0, |acc, path| acc + size(path, map)),
+    }
+}
 
-    sum
+fn folder_sizes(map: &HashMap<PathBuf, Node>) -> impl Iterator<Item = usize> + '_
+{
+    map.iter().filter_map(move |(path, node)| match node
+    {
+        Node::File(_) => None,
+        Node::Dir(_) => Some(size(path, map)),
+    })
 }
 
 fn task_one(input: &[String]) -> usize
 {
-    let (_, folders) = parse(input);
-    folders.into_iter().map(|f| size(f)).filter(|s| *s <= 100000).sum()
+    let map = parse(input);
+    folder_sizes(&map).filter(|size| *size < 100000).sum()
 }
 
 fn task_two(input: &[String]) -> usize
 {
-    let (root, folders) = parse(input);
+    let map = parse(input);
+    const FS_SIZE: usize = 70000000;
+    const FREE_SPACE: usize = 30000000;
 
-    let mut sizes = folders.iter().map(|f| size(Rc::clone(f))).collect::<Vec<_>>();
+    let mut sizes = folder_sizes(&map).collect::<Vec<_>>();
     sizes.sort_unstable();
+    let used_space = *sizes.last().unwrap();
 
-    let total_size = size(Rc::clone(&root));
-    let fs_size = 70000000;
-    let free_space = 30000000;
+    let require = FREE_SPACE - (FS_SIZE - used_space);
 
-    let available_free_space = fs_size - total_size;
-
-    let require = free_space - available_free_space;
     sizes.into_iter().find(|d| *d >= require).unwrap()
 }
 
