@@ -1,27 +1,18 @@
-use std::collections::*;
-
-fn create_map(input: &[String]) -> HashMap<(usize, usize), u32>
+fn create_map(input: &[String]) -> Vec<Vec<u32>>
 {
     input
         .iter()
-        .enumerate()
-        .flat_map(|(y, line)| {
-            line.chars().enumerate().map(move |(x, ch)| ((x, y), ch.to_digit(10).unwrap()))
-        })
+        .map(|line| line.chars().map(move |ch| ch.to_digit(10).unwrap()).collect())
         .collect()
 }
 
-fn count(
-    tree: u32,
-    map: &HashMap<(usize, usize), u32>,
-    iter: impl Iterator<Item = (usize, usize)>,
-) -> usize
+fn count(tree: u32, map: &[Vec<u32>], iter: impl Iterator<Item = (usize, usize)>) -> usize
 {
     let mut c = 0;
     for (x, y) in iter
     {
         c += 1;
-        if *map.get(&(x, y)).unwrap() >= tree
+        if map[y][x] >= tree
         {
             return c;
         }
@@ -36,37 +27,52 @@ fn task_one(input: &[String]) -> usize
     let len_x = input[0].len();
     let len_y = input.len();
 
-    map.iter()
-        .filter(|(k, tree)| {
-            (0..k.0).all(|x| map.get(&(x, k.1)).unwrap() < tree)
-                || (k.0 + 1..len_x).all(|x| map.get(&(x, k.1)).unwrap() < tree)
-                || (0..k.1).all(|y| map.get(&(k.0, y)).unwrap() < tree)
-                || (k.1 + 1..len_y).all(|y| map.get(&(k.0, y)).unwrap() < tree)
-        })
-        .count()
-}
+    let mut count = 0;
 
+    for y in 0..len_y
+    {
+        for x in 0..len_x
+        {
+            let tree = map[y][x];
+
+            if (0..x).all(|x| map[y][x] < tree)
+                || (x + 1..len_x).all(|x| map[y][x] < tree)
+                || (0..y).all(|y| map[y][x] < tree)
+                || (y + 1..len_y).all(|y| map[y][x] < tree)
+            {
+                count += 1
+            }
+        }
+    }
+    count
+}
 
 fn task_two(input: &[String]) -> usize
 {
-    let map = create_map(input);
-
     let len_x = input[0].len();
     let len_y = input.len();
 
-    map.iter()
-        .map(|(k, tree)| {
-            [
-                count(*tree, &map, (0..k.0).rev().map(|x| (x, k.1))),
-                count(*tree, &map, (k.0 + 1..len_x).map(|x| (x, k.1))),
-                count(*tree, &map, (0..k.1).rev().map(|y| (k.0, y))),
-                count(*tree, &map, (k.1 + 1..len_y).map(|y| (k.0, y))),
+    let mut max = 0;
+    let map = create_map(input);
+
+    for y in 0..len_y
+    {
+        for x in 0..len_x
+        {
+            let tree = map[y][x];
+            let val = [
+                count(tree, &map, (0..x).rev().map(|x| (x, y))),
+                count(tree, &map, (x + 1..len_x).map(|x| (x, y))),
+                count(tree, &map, (0..y).rev().map(|y| (x, y))),
+                count(tree, &map, (y + 1..len_y).map(|y| (x, y))),
             ]
             .into_iter()
-            .product::<usize>()
-        })
-        .max()
-        .unwrap()
+            .product::<usize>();
+
+            max = std::cmp::max(max, val);
+        }
+    }
+    max
 }
 
 fn main()
