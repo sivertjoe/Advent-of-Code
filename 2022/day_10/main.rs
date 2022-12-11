@@ -28,8 +28,7 @@ fn solve(input: &[String]) -> (isize, String)
 
     for cycles in 1..
     {
-        let n = (cycles + 20 - 1) / 40;
-        if cycles == 40 * n + 20
+        if cycles % 40 == 20
         {
             sum += cycles * x;
         }
