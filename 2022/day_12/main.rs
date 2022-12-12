@@ -9,17 +9,16 @@ fn neighbors<'a, Cmp>(
 where
     Cmp: Fn(u8, u8) -> bool + 'a,
 {
+    let in_grid =
+        |x, y| x >= 0 && (x as usize) < grid[0].len() && y >= 0 && (y as usize) < grid.len();
+
     let x = x as isize;
     let y = y as isize;
     [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
         .into_iter()
         .filter_map(move |(x, y)| {
-            (x >= 0
-                && (x as usize) < grid[0].len()
-                && y >= 0
-                && (y as usize) < grid.len()
-                && cmp(curr, grid[y as usize][x as usize]))
-            .then_some((x as usize, y as usize))
+            (in_grid(x, y) && cmp(curr, grid[y as usize][x as usize]))
+                .then_some((x as usize, y as usize))
         })
 }
 
