@@ -24,7 +24,7 @@ where
 
 fn bfs<Goal, Cmp>(starting: (usize, usize), grid: &[Vec<u8>], goal: Goal, cmp: Cmp) -> usize
 where
-    Goal: Fn(u8) -> bool,
+    Goal: Fn((usize, usize)) -> bool,
     Cmp: Fn(u8, u8) -> bool,
 {
     let mut vec = VecDeque::new();
@@ -36,7 +36,7 @@ where
     while let Some((cost, pos)) = vec.pop_front()
     {
         let curr = grid[pos.1][pos.0];
-        if goal(curr)
+        if goal(pos)
         {
             return cost;
         }
@@ -75,17 +75,21 @@ fn find(vec: &[Vec<u8>], target: u8) -> (usize, usize)
 fn task_one(input: &[String]) -> usize
 {
     let mut vec = get_grid(input);
-    let (x, y) = find(&vec, b'E');
-    vec[y][x] = b'z' + 1;
 
-    bfs((0, 0), &vec, |ch| ch == b'z' + 1, |curr, next| curr + 1 >= next)
+    let target = find(&vec, b'E');
+    vec[target.1][target.0] = b'z';
+
+    let start = find(&vec, b'S');
+    vec[start.1][start.0] = b'a';
+
+    bfs(start, &vec, |pos| pos == target, |curr, next| curr + 1 >= next)
 }
 
 fn task_two(input: &[String]) -> usize
 {
     let vec = get_grid(input);
     let end = find(&vec, b'E');
-    bfs(end, &vec, |ch| ch == b'a', |curr, next| curr - 1 <= next)
+    bfs(end, &vec, |(x, y)| vec[y][x] == b'a', |curr, next| curr - 1 <= next)
 }
 
 fn main()
