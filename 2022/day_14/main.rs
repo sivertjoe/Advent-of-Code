@@ -1,6 +1,7 @@
 use std::collections::*;
 
 // I use FxHasher just because it's much faster than the std hashing algoritm
+// pub type Set<V> = HashSet<V, BuildHasherDefault<FxHasher>>;
 pub type Set<V> = HashSet<V, BuildHasherDefault<FxHasher>>;
 
 fn parse(input: &[String]) -> Set<(isize, isize)>
@@ -48,16 +49,23 @@ fn solve(input: &[String], flag: bool) -> usize
     let mut map = parse(input);
     let max_y = map.iter().fold(0, |acc, (_x, y)| std::cmp::max(acc, *y));
 
+    let mut path = Vec::new();
+
     (0..)
         .position(|_| {
-            let mut pos = (500, 0);
+            let mut pos = path.pop().unwrap_or((500, 0));
+
             while pos.1 + 1 != max_y + 2
             {
                 match [(0, 1), (-1, 1), (1, 1)]
                     .into_iter()
                     .find(|(dx, dy)| !map.contains(&(pos.0 + dx, pos.1 + dy)))
                 {
-                    Some((dx, dy)) => pos = (pos.0 + dx, pos.1 + dy),
+                    Some((dx, dy)) =>
+                    {
+                        path.push(pos);
+                        pos = (pos.0 + dx, pos.1 + dy);
+                    },
                     _ => break,
                 }
             }
