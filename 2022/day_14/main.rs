@@ -1,10 +1,7 @@
-use std::collections::*;
-
 // I use FxHasher just because it's much faster than the std hashing algoritm
-// pub type Set<V> = HashSet<V, BuildHasherDefault<FxHasher>>;
-pub type Set<V> = HashSet<V, BuildHasherDefault<FxHasher>>;
+pub type HashSet<V> = std::collections::HashSet<V, BuildHasherDefault<FxHasher>>;
 
-fn parse(input: &[String]) -> Set<(isize, isize)>
+fn parse(input: &[String]) -> HashSet<(isize, isize)>
 {
     let parse = |s: &str| {
         let (fst, snd) = s.split_once(',').unwrap();
@@ -13,7 +10,7 @@ fn parse(input: &[String]) -> Set<(isize, isize)>
         (fst, snd)
     };
 
-    let mut map = Set::default();
+    let mut map = HashSet::default();
     for line in input
     {
         let mut iter = line.split(" -> ");
@@ -29,7 +26,7 @@ fn parse(input: &[String]) -> Set<(isize, isize)>
     map
 }
 
-fn draw(p1: (isize, isize), p2: (isize, isize), map: &mut Set<(isize, isize)>)
+fn draw(p1: (isize, isize), p2: (isize, isize), map: &mut HashSet<(isize, isize)>)
 {
     let min_y = p1.1.min(p2.1);
     let min_x = p1.0.min(p2.0);
