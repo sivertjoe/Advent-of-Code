@@ -1,227 +1,228 @@
-use std::collections::*;
+use std::{collections::*, iter::FromIterator};
 
-fn task_one(input: &[String]) -> usize
+#[derive(Debug, Clone)]
+struct Room
 {
-    let mut pressure = HashMap::new();
-    let mut map: HashMap<String, Vec<String>> = HashMap::new();
-
-    for line in input
-    {
-        let (press, path) = line.split_once(';').unwrap();
-        let mut iter = press.split_whitespace();
-        let name = iter.nth(1).unwrap();
-        let press: &str = iter.nth(2).unwrap();
-        let press = press.trim_start_matches("rate=");
-        let press = press.parse::<usize>().unwrap();
-
-        pressure.insert(name.to_string(), press);
-
-        let iter = path.split_whitespace();
-        for elem in iter.skip(4).map(|w| w.trim_end_matches(','))
-        {
-            map.entry(name.to_string()).or_default().push(elem.to_string());
-        }
-    }
-
-    rec("AA", 0, 0, 1, &map, &pressure, HashSet::new(), &mut HashMap::new()).unwrap()
+    rate:  i32,
+    exits: Vec<String>,
 }
 
-fn rec(
-    pos: &str,
-    flow_rate: usize,
-    res: usize,
-    minutes: usize,
-    map: &HashMap<String, Vec<String>>,
-    pressure: &HashMap<String, usize>,
-    visited: HashSet<String>,
-    cache: &mut HashMap<(usize, String, usize), usize>,
-) -> Option<usize>
+fn parse_data(lines: &[String]) -> HashMap<String, Room>
 {
-    if minutes > 30
+    let mut rooms = HashMap::new();
+    for line in lines
     {
-        return Some(res);
-    }
-    let cache_key = (minutes, pos.to_string(), flow_rate);
-    if let Some(cache_res) = cache.get(&cache_key)
-    {
-        if *cache_res >= res
+        let line = line.replace(',', "");
+        let line = line.split_whitespace().collect::<Vec<_>>();
+        if line.is_empty()
         {
-            return None;
+            continue;
+        }
+        let source = line[1];
+        let rate = line[4][5..line[4].len() - 1].parse().unwrap();
+        let exits = line[9..].to_vec();
+        rooms.insert(source.to_string(), Room {
+            rate,
+            exits: exits.iter().map(|s| s.to_string()).collect(),
+        });
+    }
+    rooms
+}
+
+fn find_distances(rooms: &HashMap<String, Room>) -> (HashMap<(&str, &str), i32>, BTreeSet<&str>)
+{
+    let key_rooms = rooms
+        .iter()
+        .filter_map(|(k, v)| (v.rate > 0 || k == "AA").then_some(k.as_str()))
+        .collect::<BTreeSet<&str>>();
+
+    let mut distances: HashMap<(&str, &str), i32> = HashMap::new();
+
+    for start_room in rooms.keys()
+    {
+        if !key_rooms.contains(start_room.as_str())
+        {
+            continue;
+        }
+
+        let mut cur: BTreeSet<&str> = BTreeSet::new();
+        cur.insert(start_room);
+        let mut next: BTreeSet<&str> = BTreeSet::new();
+        let mut dist = 0;
+
+        distances.insert((start_room, start_room), 0);
+
+        while !cur.is_empty()
+        {
+            dist += 1;
+            for pos in cur
+            {
+                for newpos in &rooms[pos].exits
+                {
+                    if let std::collections::hash_map::Entry::Vacant(e) =
+                        distances.entry((start_room, newpos))
+                    {
+                        e.insert(dist);
+                        next.insert(newpos);
+                    }
+                }
+            }
+            cur = next;
+            next = BTreeSet::new();
         }
     }
-    cache.insert(cache_key, res);
+    (distances, key_rooms)
+}
 
-    let rate = pressure[pos];
+fn find_best_total_flow(
+    cur: &str,
+    time: i32,
+    seen: &BTreeSet<&str>,
+    targets: &BTreeSet<&str>,
+    rooms: &HashMap<String, Room>,
+    distances: &HashMap<(&str, &str), i32>,
+) -> i32
+{
+    let mut seen = seen.clone();
+    seen.insert(cur);
 
-    let next_best_open = if rate > 0 && !visited.contains(pos)
+    let targets = targets.difference(&seen).copied().collect::<BTreeSet<&str>>();
+
+    let mut best_flow = 0;
+    for target in targets.iter()
     {
-        let mut visited = visited.clone();
-        visited.insert(pos.to_string());
-        rec(pos, flow_rate + rate, res + flow_rate, minutes + 1, map, pressure, visited, cache)
+        let time_left = time - distances[&(cur, *target)] - 1;
+        if time_left > 0
+        {
+            let flow = rooms[*target].rate * time_left;
+            let flow =
+                flow + find_best_total_flow(target, time_left, &seen, &targets, rooms, distances);
+            if flow > best_flow
+            {
+                best_flow = flow;
+            }
+        }
+    }
+    best_flow
+}
+
+
+fn task_one(input: &[String]) -> i32
+{
+    let rooms = parse_data(input);
+    let (distances, key_rooms) = find_distances(&rooms);
+
+    find_best_total_flow("AA", 30, &BTreeSet::new(), &key_rooms, &rooms, &distances)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn find_and_record<'a>(
+    cur: &'a str,
+    curflow: i32,
+    time: i32,
+    seen: BTreeSet<&'a str>,
+    rooms: &HashMap<&str, Room>,
+    key_rooms: &BTreeSet<&'a str>,
+    distances: &HashMap<(&str, &str), i32>,
+    endpoints: &mut HashMap<BTreeSet<&'a str>, i32>,
+) -> i32
+{
+    let mut seen = seen;
+    seen.insert(cur);
+    let targets = BTreeSet::from_iter(key_rooms.difference(&seen));
+
+    let start = BTreeSet::from_iter(["AA"]);
+    let torecord = BTreeSet::from_iter(seen.difference(&start).copied());
+
+    if endpoints.contains_key(&torecord)
+    {
+        endpoints.insert(torecord.clone(), i32::max(endpoints[&torecord], curflow));
     }
     else
     {
-        None
-    };
+        endpoints.insert(torecord, curflow);
+    }
 
-    let next_best_down = map[pos]
-        .iter()
-        .filter_map(|new_pos| {
-            rec(
-                new_pos,
-                flow_rate,
-                res + flow_rate,
-                minutes + 1,
-                map,
-                pressure,
-                visited.clone(),
-                cache,
-            )
-        })
-        .max();
-
-    std::cmp::max(next_best_open, next_best_down)
+    let mut best_flow = 0;
+    for target in targets
+    {
+        let time_left = time - distances[&(cur, *target)] - 1;
+        if time_left > 0
+        {
+            let newflow = rooms[target].rate * time_left;
+            let newflow = newflow
+                + find_and_record(
+                    target,
+                    curflow + newflow,
+                    time_left,
+                    seen.clone(),
+                    rooms,
+                    key_rooms,
+                    distances,
+                    endpoints,
+                );
+            if newflow > best_flow
+            {
+                best_flow = newflow;
+            }
+        }
+    }
+    best_flow
 }
 
-fn task_two(input: &[String]) -> usize
+fn fill_in_endpoints<'a>(
+    cur: BTreeSet<&'a str>,
+    endpoints: &mut HashMap<BTreeSet<&'a str>, i32>,
+) -> i32
 {
-    let mut pressure = HashMap::new();
-    let mut map: HashMap<String, Vec<String>> = HashMap::new();
-
-    for line in input
+    if !endpoints.contains_key(&cur)
     {
-        let (press, path) = line.split_once(';').unwrap();
-        let mut iter = press.split_whitespace();
-        let name = iter.nth(1).unwrap();
-        let press: &str = iter.nth(2).unwrap();
-        let press = press.trim_start_matches("rate=");
-        let press = press.parse::<usize>().unwrap();
-
-        pressure.insert(name.to_string(), press);
-
-        let iter = path.split_whitespace();
-        for elem in iter.skip(4).map(|w| w.trim_end_matches(','))
+        let mut best_flow = 0;
+        for e in cur.iter()
         {
-            map.entry(name.to_string()).or_default().push(elem.to_string());
+            let mut subset = cur.clone();
+            subset.remove(e);
+            let new_flow = fill_in_endpoints(subset, endpoints);
+            if new_flow > best_flow
+            {
+                best_flow = new_flow;
+            }
         }
+        endpoints.insert(cur.clone(), best_flow);
     }
-
-    rec2(1, "AA", "AA", 0, 0, &map, &pressure, &HashSet::new(), &mut HashMap::new()).unwrap()
+    *endpoints.get(&cur).unwrap()
 }
 
-fn rec2(
-    minutes: usize,
-    my_pos: &str,
-    elephant_pos: &str,
-    flow_rate: usize,
-    score: usize,
-    map: &HashMap<String, Vec<String>>,
-    pressure: &HashMap<String, usize>,
-    visited: &HashSet<String>,
-    cache: &mut HashMap<(usize, String, String, usize), usize>,
-) -> Option<usize>
+
+fn task_two(input: &[String]) -> i32
 {
-    if minutes > 26
-    {
-        return Some(score);
-    }
+    let rooms = parse_data(input);
+    let (distances, key_rooms) = find_distances(&rooms);
 
-    let cache_key = (minutes, my_pos.to_string(), elephant_pos.to_string(), flow_rate);
-    if let Some(cache_res) = cache.get(&cache_key)
+    let mut endpoints = HashMap::new();
+
+    let rooms: HashMap<&str, Room> = rooms.iter().map(|(k, v)| (k.as_str(), v.clone())).collect();
+    find_and_record("AA", 0, 26, BTreeSet::new(), &rooms, &key_rooms, &distances, &mut endpoints);
+
+    let mut curr = key_rooms.clone();
+    curr.remove("AA");
+    fill_in_endpoints(curr, &mut endpoints);
+
+
+    let mut best_flow = 0;
+    for human_work in endpoints.keys()
     {
-        if *cache_res >= score
+        let mut elephant_work = key_rooms.clone();
+        elephant_work.remove("AA");
+        let elephant_work = elephant_work.difference(human_work).copied().collect();
+
+        let total_flow = endpoints[human_work] + endpoints[&elephant_work];
+        if total_flow > best_flow
         {
-            return None;
+            best_flow = total_flow;
         }
     }
-
-    cache.insert(cache_key, score);
-
-    let (my_flow_rate, my_tunnels) = { (pressure[my_pos], &map[my_pos]) };
-    let (elephant_flow_rate, elephant_tunnels) = { (pressure[elephant_pos], &map[elephant_pos]) };
-
-    let can_open_my_valve = my_flow_rate > 0 && !visited.contains(my_pos);
-    let can_open_elephant_valve = elephant_flow_rate > 0 && !visited.contains(elephant_pos);
-
-    let mut res = Vec::new();
-    if can_open_my_valve
-    {
-        let mut visited = visited.clone();
-        visited.insert(my_pos.to_string());
-        for ep in elephant_tunnels.iter()
-        {
-            res.push(rec2(
-                minutes + 1,
-                my_pos,
-                ep,
-                flow_rate + my_flow_rate,
-                score + flow_rate,
-                map,
-                pressure,
-                &visited,
-                cache,
-            ));
-        }
-    }
-
-    if can_open_elephant_valve
-    {
-        let mut visited = visited.clone();
-        visited.insert(elephant_pos.to_string());
-        for mp in my_tunnels.iter()
-        {
-            res.push(rec2(
-                minutes + 1,
-                mp,
-                elephant_pos,
-                flow_rate + elephant_flow_rate,
-                score + flow_rate,
-                map,
-                pressure,
-                &visited,
-                cache,
-            ));
-        }
-    }
-
-    if can_open_elephant_valve && can_open_my_valve && my_pos != elephant_pos
-    {
-        let mut visited = visited.clone();
-        visited.insert(elephant_pos.to_string());
-        visited.insert(my_pos.to_string());
-
-        res.push(rec2(
-            minutes + 1,
-            my_pos,
-            elephant_pos,
-            flow_rate + elephant_flow_rate + my_flow_rate,
-            score + flow_rate,
-            map,
-            pressure,
-            &visited,
-            cache,
-        ));
-    }
-
-    for new_elephant_location in elephant_tunnels.iter()
-    {
-        for new_my_location in my_tunnels.iter()
-        {
-            res.push(rec2(
-                minutes + 1,
-                new_my_location,
-                new_elephant_location,
-                flow_rate,
-                score + flow_rate,
-                map,
-                pressure,
-                visited,
-                cache,
-            ));
-        }
-    }
-
-    res.into_iter().flatten().max()
+    best_flow
 }
 
 fn main()
