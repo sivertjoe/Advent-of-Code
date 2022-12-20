@@ -9,123 +9,7 @@ struct Blueprint
     geode_cost:    (u32, u32),
 }
 
-
-fn task_one(input: &[String]) -> u32
-{
-    let mut bs = Vec::new();
-    for line in input
-    {
-        let mut words = line.split_whitespace().collect::<Vec<_>>();
-
-        let ore_cost = words[6].parse().unwrap();
-        let clay_cost = words[12].parse::<u32>().unwrap();
-        let obsidian_cost = (words[18].parse().unwrap(), words[21].parse().unwrap());
-        let geode_cost =
-            (words[27].parse().unwrap(), words[30].trim_end_matches('.').parse().unwrap());
-
-        let blueprint = Blueprint {
-            ore_cost,
-            clay_cost,
-            obsidian_cost,
-            geode_cost,
-        };
-
-        bs.push(blueprint);
-    }
-
-
-    bs.into_iter()
-        .enumerate()
-        .map(|(id, b)| {
-            let id = id as u32;
-            let s = solve::<24>(
-                b.ore_cost,
-                b.clay_cost,
-                b.obsidian_cost.0,
-                b.obsidian_cost.1,
-                b.geode_cost.0,
-                b.geode_cost.1,
-            );
-            (id + 1) * s
-        })
-        .sum()
-}
-
-#[allow(non_snake_case)]
-fn solve<const T: u32>(Co: u32, Cc: u32, Co1: u32, Co2: u32, Cg1: u32, Cg2: u32) -> u32
-{
-    let mut best = 0;
-
-    //          ore clay obsidian geodes r1 r2 r3 r4 time
-    let start = (0, 0, 0, 0, 1, 0, 0, 0, T);
-    let mut vec = VecDeque::new();
-    vec.push_back(start);
-    let mut seen = HashSet::new();
-
-    while let Some((mut o, mut c, mut ob, g, mut r1, mut r2, mut r3, r4, t)) = vec.pop_front()
-    {
-        best = std::cmp::max(best, g);
-        if t == 0
-        {
-            continue;
-        }
-
-        let core = [Co, Cc, Co1, Cg1].into_iter().max().unwrap();
-        if r1 >= core
-        {
-            r1 = core;
-        }
-        if r2 >= Co2
-        {
-            r2 = Co2;
-        }
-        if r3 >= Cg2
-        {
-            r3 = Cg2;
-        }
-        if o >= t * core - r1 * (t - 1)
-        {
-            o = t * core - r1 * (t - 1);
-        }
-        if c >= t * Co2 - r2 * (t - 1)
-        {
-            c = t * Co2 - r2 * (t - 1);
-        }
-        if ob >= t * Cg2 - r3 * (t - 1)
-        {
-            ob = t * Cg2 - r3 * (t - 1);
-        }
-
-        let state = (o, c, ob, g, r1, r2, r3, r4, t);
-
-        if seen.contains(&state)
-        {
-            continue;
-        }
-        seen.insert(state);
-
-        vec.push_back((o + r1, c + r2, ob + r3, g + r4, r1, r2, r3, r4, t - 1));
-        if o >= Co
-        {
-            vec.push_back((o - Co + r1, c + r2, ob + r3, g + r4, r1 + 1, r2, r3, r4, t - 1));
-        }
-        if o >= Cc
-        {
-            vec.push_back((o - Cc + r1, c + r2, ob + r3, g + r4, r1, r2 + 1, r3, r4, t - 1));
-        }
-        if o >= Co1 && c >= Co2
-        {
-            vec.push_back((o - Co1 + r1, c - Co2 + r2, ob + r3, g + r4, r1, r2, r3 + 1, r4, t - 1));
-        }
-        if o >= Cg1 && ob >= Cg2
-        {
-            vec.push_back((o - Cg1 + r1, c + r2, ob - Cg2 + r3, g + r4, r1, r2, r3, r4 + 1, t - 1));
-        }
-    }
-    best
-}
-
-fn task_two(input: &[String]) -> u32
+fn parse(input: &[String]) -> Vec<Blueprint>
 {
     let mut bs = Vec::new();
     for line in input
@@ -147,21 +31,113 @@ fn task_two(input: &[String]) -> u32
 
         bs.push(blueprint);
     }
+    bs
+}
 
+fn solve<const T: u32>(bp: Blueprint) -> u32
+{
+    let ore_cost = bp.ore_cost;
+    let clay_cost = bp.clay_cost;
+    let (obsidian_ore_cost, obsidian_clay_cost) = bp.obsidian_cost;
+    let (geode_ore_cost, geode_obsidian_cost) = bp.geode_cost;
+    let mut best = 0;
 
-    bs.into_iter()
-        .take(3)
-        .map(|b| {
-            solve::<32>(
-                b.ore_cost,
-                b.clay_cost,
-                b.obsidian_cost.0,
-                b.obsidian_cost.1,
-                b.geode_cost.0,
-                b.geode_cost.1,
-            )
+    //             ore     clay    obs     geo    time
+    let start = ([[0, 1], [0, 0], [0, 0], [0, 0]], T);
+    let mut vec = VecDeque::new();
+    vec.push_back(start);
+    let mut seen = HashSet::new();
+
+    const ORE: usize = 0;
+    const CLAY: usize = 1;
+    const OBSIDIAN: usize = 2;
+    const GEODE: usize = 3;
+
+    const AMOUNT: usize = 0;
+    // Robots
+    const R: usize = 1;
+
+    while let Some((mut arr, t)) = vec.pop_front()
+    {
+        best = std::cmp::max(best, arr[GEODE][AMOUNT]);
+        if t == 0
+        {
+            continue;
+        }
+
+        let core = [ore_cost, clay_cost, obsidian_ore_cost, geode_ore_cost]
+            .into_iter()
+            .max()
+            .unwrap();
+
+        for (ob, tt) in [(ORE, core), (CLAY, obsidian_clay_cost), (OBSIDIAN, geode_obsidian_cost)]
+        {
+            if arr[ob][R] >= tt
+            {
+                arr[ob][R] = tt;
+            }
+            let v = t * tt - arr[ob][R] * (t - 1);
+            if arr[ob][AMOUNT] >= v
+            {
+                arr[ob][AMOUNT] = v;
+            }
+        }
+
+        let state = (arr, t - 1);
+
+        if !seen.insert(state)
+        {
+            continue;
+        }
+
+        let mut ns = state;
+        for i in [ORE, CLAY, OBSIDIAN, GEODE].into_iter()
+        {
+            ns.0[i][AMOUNT] += ns.0[i][R];
+        }
+
+        vec.push_back(ns.clone());
+
+        let new_states: [(usize, &[(usize, u32)]); 4] = [
+            (ORE, &[(ORE, ore_cost)]),
+            (CLAY, &[(ORE, clay_cost)]),
+            (OBSIDIAN, &[(ORE, obsidian_ore_cost), (CLAY, obsidian_clay_cost)]),
+            (GEODE, &[(ORE, geode_ore_cost), (OBSIDIAN, geode_obsidian_cost)]),
+        ];
+
+        for (mineral, cond) in new_states
+        {
+            if cond.iter().all(|(check, lim)| arr[*check][AMOUNT] >= *lim)
+            {
+                let mut ns = ns.clone();
+                ns.0[mineral][R] += 1;
+                for (check, lim) in cond
+                {
+                    ns.0[*check][AMOUNT] -= *lim;
+                }
+                vec.push_back(ns);
+            }
+        }
+    }
+    best
+}
+
+fn task_one(input: &[String]) -> u32
+{
+    parse(input)
+        .into_iter()
+        .enumerate()
+        .map(|(id, b)| {
+            let id = id as u32;
+            (id + 1) * solve::<24>(b)
         })
-        .product()
+        .sum()
+}
+
+
+fn task_two(input: &[String]) -> u32
+{
+    parse(input).into_iter().take(3).map(solve::<32>).product()
 }
 
 fn main()
