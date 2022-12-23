@@ -46,7 +46,9 @@ fn solve<const T: u32>(bp: Blueprint) -> u32
     let start = ([[0, 1], [0, 0], [0, 0], [0, 0]], T);
     let mut vec = VecDeque::new();
     vec.push_back(start);
-    let mut seen = HashSet::new();
+
+    let hasher = BuildHasherDefault::<FxHasher>::default();
+    let mut seen = HashSet::with_capacity_and_hasher(500_000, hasher);
 
     const ORE: usize = 0;
     const CLAY: usize = 1;
@@ -96,7 +98,7 @@ fn solve<const T: u32>(bp: Blueprint) -> u32
             ns.0[i][AMOUNT] += ns.0[i][R];
         }
 
-        vec.push_back(ns.clone());
+        vec.push_back(ns);
 
         let new_states: [(usize, &[(usize, u32)]); 4] = [
             (ORE, &[(ORE, ore_cost)]),
@@ -109,7 +111,7 @@ fn solve<const T: u32>(bp: Blueprint) -> u32
         {
             if cond.iter().all(|(check, lim)| arr[*check][AMOUNT] >= *lim)
             {
-                let mut ns = ns.clone();
+                let mut ns = ns;
                 ns.0[mineral][R] += 1;
                 for (check, lim) in cond
                 {
@@ -185,4 +187,125 @@ where
 fn get_input_file() -> String
 {
     std::env::args().nth(1).unwrap_or_else(|| "input".to_string())
+}
+
+
+use core::{
+    convert::TryInto,
+    default::Default,
+    hash::{BuildHasherDefault, Hasher},
+    mem::size_of,
+    ops::BitXor,
+};
+
+pub struct FxHasher
+{
+    hash: usize,
+}
+
+#[cfg(target_pointer_width = "32")]
+const K: usize = 0x9e3779b9;
+#[cfg(target_pointer_width = "64")]
+const K: usize = 0x517cc1b727220a95;
+
+impl Default for FxHasher
+{
+    #[inline]
+    fn default() -> FxHasher
+    {
+        FxHasher {
+            hash: 0
+        }
+    }
+}
+
+impl FxHasher
+{
+    #[inline]
+    fn add_to_hash(&mut self, i: usize)
+    {
+        self.hash = self.hash.rotate_left(5).bitxor(i).wrapping_mul(K);
+    }
+}
+
+impl Hasher for FxHasher
+{
+    #[inline]
+    fn write(&mut self, mut bytes: &[u8])
+    {
+        #[cfg(target_pointer_width = "32")]
+        let read_usize = |bytes: &[u8]| u32::from_ne_bytes(bytes[..4].try_into().unwrap());
+        #[cfg(target_pointer_width = "64")]
+        let read_usize = |bytes: &[u8]| u64::from_ne_bytes(bytes[..8].try_into().unwrap());
+
+        let mut hash = FxHasher {
+            hash: self.hash
+        };
+        assert!(size_of::<usize>() <= 8);
+        while bytes.len() >= size_of::<usize>()
+        {
+            hash.add_to_hash(read_usize(bytes) as usize);
+            bytes = &bytes[size_of::<usize>()..];
+        }
+        if (size_of::<usize>() > 4) && (bytes.len() >= 4)
+        {
+            hash.add_to_hash(u32::from_ne_bytes(bytes[..4].try_into().unwrap()) as usize);
+            bytes = &bytes[4..];
+        }
+        if (size_of::<usize>() > 2) && bytes.len() >= 2
+        {
+            hash.add_to_hash(u16::from_ne_bytes(bytes[..2].try_into().unwrap()) as usize);
+            bytes = &bytes[2..];
+        }
+        if (size_of::<usize>() > 1) && bytes.len() >= 1
+        {
+            hash.add_to_hash(bytes[0] as usize);
+        }
+        self.hash = hash.hash;
+    }
+
+    #[inline]
+    fn write_u8(&mut self, i: u8)
+    {
+        self.add_to_hash(i as usize);
+    }
+
+    #[inline]
+    fn write_u16(&mut self, i: u16)
+    {
+        self.add_to_hash(i as usize);
+    }
+
+    #[inline]
+    fn write_u32(&mut self, i: u32)
+    {
+        self.add_to_hash(i as usize);
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    #[inline]
+    fn write_u64(&mut self, i: u64)
+    {
+        self.add_to_hash(i as usize);
+        self.add_to_hash((i >> 32) as usize);
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    #[inline]
+    fn write_u64(&mut self, i: u64)
+    {
+        self.add_to_hash(i as usize);
+    }
+
+    #[inline]
+    fn write_usize(&mut self, i: usize)
+    {
+        self.add_to_hash(i);
+    }
+
+    #[inline]
+    fn finish(&self) -> u64
+    {
+        self.hash as u64
+    }
 }
