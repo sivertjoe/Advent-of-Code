@@ -1,80 +1,29 @@
 use std::collections::*;
 
-#[derive(Clone, Copy, Eq,PartialEq, Ord, PartialOrd)]
-enum Dir 
+#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
+enum Dir
 {
     Up,
     Down,
-    Left, 
-    Right
+    Left,
+    Right,
 }
 
-#[derive(Clone, Eq,PartialEq, Ord, PartialOrd)]
-enum Item 
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd)]
+enum Item
 {
     Wall,
-    Open(Vec<Dir>)
+    Open(Vec<Dir>),
 }
 
-fn bounding_box(map: &BTreeMap<(usize, usize), Item>) -> (usize, usize, usize, usize)
+fn step(map: &mut HashMap<(usize, usize), Item>, max_x: usize, max_y: usize)
 {
-    let min_y = map.keys().map(|(_x, y)| *y).min().unwrap();
-    let min_x = map.keys().map(|(x, _y)| *x).min().unwrap();
-
-    let max_y = map.keys().map(|(_x, y)| *y).max().unwrap();
-    let max_x = map.keys().map(|(x, _y)| *x).max().unwrap();
-
-    (min_x, min_y, max_x - min_x, max_y - min_y)
-}
-
-fn print(map: &BTreeMap<(usize, usize), Item>)
-{
-    let (x, y, w, h) = bounding_box(map);
-    for y in y..=y+h
-    {
-        for x in x..=x+w
-        {
-            match map.get(&(x, y)).unwrap()
-            {
-                Item::Wall => print!("#"),
-                Item::Open(s) => 
-                {
-                    if s.is_empty() {
-                        print!(".");
-                    }
-                    else if s.len() == 1
-                    {
-                        let ch = match &s[0]
-                        {
-                            Dir::Left => '<',
-                            Dir::Right => '>',
-                            Dir::Up => '^',
-                            Dir::Down => 'v'
-                        };
-                        print!("{}", ch);
-                    }
-                    else {
-                        print!("{}", s.len());
-                    }
-                }
-            }
-        }
-        println!();
-    }
-    println!();
-}
-
-fn step(map: &mut BTreeMap<(usize, usize), Item>)
-{
-    let keys = map.keys().map(|s| *s).collect::<Vec<_>>();
-
-    let max_y = map.keys().map(|(_x, y)| *y).max().unwrap();
-    let max_x = map.keys().map(|(x, _y)| *x).max().unwrap();
+    let keys = map.keys().copied().collect::<Vec<_>>();
 
     let mut res = Vec::new();
     for (x, y) in keys
     {
-        if let Some(Item::Open(space)) = map.get(&(x, y)) 
+        if let Some(Item::Open(space)) = map.get(&(x, y))
         {
             for blizz in space.iter()
             {
@@ -82,37 +31,36 @@ fn step(map: &mut BTreeMap<(usize, usize), Item>)
                 {
                     Dir::Up => (x, y - 1),
                     Dir::Down => (x, y + 1),
-                    Dir::Left => (x-1, y),
-                    Dir::Right => (x+1, y),
+                    Dir::Left => (x - 1, y),
+                    Dir::Right => (x + 1, y),
                 };
-                
+
                 if *map.get(&next).unwrap() == Item::Wall
                 {
                     let next = match blizz
                     {
-                        Dir::Up => (x, max_y-1),
+                        Dir::Up => (x, max_y - 1),
                         Dir::Down => (x, 1),
-                        Dir::Left => (max_x-1, y),
+                        Dir::Left => (max_x - 1, y),
                         Dir::Right => (1, y),
                     };
                     res.push((next, *blizz));
                 }
-                if matches!(*map.get(&next).unwrap(),Item::Open(_))
+                if matches!(*map.get(&next).unwrap(), Item::Open(_))
                 {
                     res.push((next, *blizz));
                 }
-
             }
         }
-        if let Some(Item::Open(ref mut space)) = map.get_mut(&(x, y)) 
+        if let Some(Item::Open(ref mut space)) = map.get_mut(&(x, y))
         {
             space.clear();
         }
     }
 
-    for (key, blizz) in res 
+    for (key, blizz) in res
     {
-        if let Some(Item::Open(ref mut space)) = map.get_mut(&key) 
+        if let Some(Item::Open(ref mut space)) = map.get_mut(&key)
         {
             space.push(blizz);
         }
@@ -130,11 +78,11 @@ fn ns(pos: (usize, usize)) -> Vec<(usize, usize)>
         .collect()
 }
 
-fn neighbors(state: (usize, usize), board: &BTreeMap<(usize, usize), Item>) -> Vec<(usize, usize)>
+fn neighbors(state: (usize, usize), board: &HashMap<(usize, usize), Item>) -> Vec<(usize, usize)>
 {
     ns(state)
         .into_iter()
-        .filter(|next| matches!(board.get(&next), Some(Item::Open(v)) if v.is_empty()))
+        .filter(|next| matches!(board.get(next), Some(Item::Open(v)) if v.is_empty()))
         .collect()
 }
 
@@ -143,62 +91,64 @@ fn hcost(state: (usize, usize), end: (usize, usize)) -> usize
     manhattan_distance(state, end)
 }
 
-
-fn a_star(start: (usize, usize), end: (usize, usize), map: &BTreeMap<(usize,usize), Item>) -> (usize, BTreeMap<(usize, usize), Item>)
+fn a_star(
+    start: (usize, usize),
+    end: (usize, usize),
+    map: &HashMap<(usize, usize), Item>,
+) -> (usize, HashMap<(usize, usize), Item>)
 {
+    let max_y = map.keys().map(|(_x, y)| *y).max().unwrap();
+    let max_x = map.keys().map(|(x, _y)| *x).max().unwrap();
+
     use std::cmp::Reverse;
     let mut heap = BinaryHeap::new();
 
     let init = (Reverse(hcost(start, end)), Reverse(0), start);
     heap.push(init);
 
-    let mut seen = BTreeSet::new();
+    let mut seen = HashSet::new();
     seen.insert((start, 0));
 
-
-    let mut cache: HashMap<usize, BTreeMap<(usize, usize), Item>> = HashMap::new();
+    let mut cache: HashMap<usize, HashMap<(usize, usize), Item>> = HashMap::new();
     let mut map = map.clone();
-    step(&mut map);
+    step(&mut map, max_x, max_y);
     cache.insert(0, map);
-
-
 
     while let Some((_h, cost, state)) = heap.pop()
     {
         if state == end
         {
             let map = cache.get(&cost.0).unwrap().clone();
-            return (cost.0 +1, map);
+            return (cost.0 + 1, map);
         }
-
 
         let nc = cost.0 + 1;
         if !cache.contains_key(&nc)
         {
             let mut prev = cache.get(&cost.0).unwrap().clone();
-            step(&mut prev);
+            step(&mut prev, max_x, max_y);
             cache.insert(nc, prev);
         }
 
         let map = cache.get(&nc).unwrap();
-        for next_state in neighbors(state, &map)
+        for next_state in neighbors(state, map)
         {
             if seen.insert((next_state, nc))
             {
                 let h = hcost(next_state, end);
                 let g = cost.0 + 1;
-                let new = (Reverse(g + h), Reverse(g), next_state.clone());
+                let new = (Reverse(g + h), Reverse(g), next_state);
                 heap.push(new);
             }
         }
-        if matches!(map.get(&state), Some(Item::Open(v)) if v.is_empty()) && seen.insert((state, nc))
+        if matches!(map.get(&state), Some(Item::Open(v)) if v.is_empty())
+            && seen.insert((state, nc))
         {
             let h = hcost(state, end);
             let g = cost.0 + 1;
-            let new = (Reverse(g + h), Reverse(g), state.clone());
+            let new = (Reverse(g + h), Reverse(g), state);
             heap.push(new);
         }
-        
     }
     unreachable!()
 }
@@ -208,10 +158,10 @@ fn manhattan_distance(p1: (usize, usize), p2: (usize, usize)) -> usize
     p1.0.abs_diff(p2.0) + p1.1.abs_diff(p2.1)
 }
 
-fn task_one(input: &[String]) -> usize
+fn parse(input: &[String]) -> (HashMap<(usize, usize), Item>, (usize, usize), (usize, usize))
 {
-    let mut map = BTreeMap::new();
-    for (y, line) in input.iter().enumerate() 
+    let mut map = HashMap::new();
+    for (y, line) in input.iter().enumerate()
     {
         for (x, ch) in line.chars().enumerate()
         {
@@ -228,59 +178,28 @@ fn task_one(input: &[String]) -> usize
             map.insert((x, y), item);
         }
     }
-
     let max_y = map.keys().map(|(_x, y)| *y).max().unwrap();
+    let max_x = map.keys().map(|(x, _y)| *x).max().unwrap();
+    (map, (1, 0), (max_x - 1, max_y))
+}
 
-    let start: (usize, usize) = {
-        *map.iter().find(|((x, y), ch)| *y == 0 && matches!(**ch, Item::Open(_))).unwrap().0
-    };
-    let end: (usize, usize) = {
-        *map.iter().find(|((x, y), ch)| *y == max_y && matches!(**ch, Item::Open(_))).unwrap().0
-    };
+fn task_one(input: &[String]) -> usize
+{
+    let (map, start, end) = parse(input);
     a_star(start, end, &map).0
 }
 
 fn task_two(input: &[String]) -> usize
 {
-    let mut map = BTreeMap::new();
-    for (y, line) in input.iter().enumerate() 
-    {
-        for (x, ch) in line.chars().enumerate()
-        {
-            let item = match ch
-            {
-                '#' => Item::Wall,
-                '.' => Item::Open(Vec::new()),
-                '>' => Item::Open(vec![Dir::Right]),
-                '<' => Item::Open(vec![Dir::Left]),
-                '^' => Item::Open(vec![Dir::Up]),
-                'v' => Item::Open(vec![Dir::Down]),
-                _ => unreachable!(),
-            };
-            map.insert((x, y), item);
-        }
-    }
+    let (map, start, end) = parse(input);
 
-    let max_y = map.keys().map(|(_x, y)| *y).max().unwrap();
 
-    let start: (usize, usize) = {
-        *map.iter().find(|((x, y), ch)| *y == 0 && matches!(**ch, Item::Open(_))).unwrap().0
-    };
-    let end: (usize, usize) = {
-        *map.iter().find(|((x, y), ch)| *y == max_y && matches!(**ch, Item::Open(_))).unwrap().0
-    };
-
-    let mut res = 0;
-    let (cost, map) = a_star(start, end, &map);
-    res += cost;
-
-    let (cost, map) = a_star(end, start, &map);
-    res += cost;
-
-    let (cost, map) = a_star(start, end, &map);
-    res += cost;
-
-    res
+    (0..3)
+        .fold((0, start, end, map), |(res, start, end, map), _| {
+            let (cost, map) = a_star(start, end, &map);
+            (res + cost, end, start, map)
+        })
+        .0
 }
 
 fn main()
