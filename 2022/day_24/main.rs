@@ -18,10 +18,9 @@ enum Item
 
 fn step(map: &mut HashMap<(usize, usize), Item>, max_x: usize, max_y: usize)
 {
-    let keys = map.keys().copied().collect::<Vec<_>>();
-
     let mut res = Vec::new();
-    for (x, y) in keys
+
+    for (x, y) in map.keys().copied()
     {
         if let Some(Item::Open(space)) = map.get(&(x, y))
         {
@@ -35,24 +34,30 @@ fn step(map: &mut HashMap<(usize, usize), Item>, max_x: usize, max_y: usize)
                     Dir::Right => (x + 1, y),
                 };
 
-                if *map.get(&next).unwrap() == Item::Wall
+                match map.get(&next).unwrap()
                 {
-                    let next = match blizz
+                    Item::Wall =>
                     {
-                        Dir::Up => (x, max_y - 1),
-                        Dir::Down => (x, 1),
-                        Dir::Left => (max_x - 1, y),
-                        Dir::Right => (1, y),
-                    };
-                    res.push((next, *blizz));
-                }
-                if matches!(*map.get(&next).unwrap(), Item::Open(_))
-                {
-                    res.push((next, *blizz));
-                }
+                        let next = match blizz
+                        {
+                            Dir::Up => (x, max_y - 1),
+                            Dir::Down => (x, 1),
+                            Dir::Left => (max_x - 1, y),
+                            Dir::Right => (1, y),
+                        };
+                        res.push((next, *blizz));
+                    },
+                    Item::Open(_) =>
+                    {
+                        res.push((next, *blizz));
+                    },
+                };
             }
         }
-        if let Some(Item::Open(ref mut space)) = map.get_mut(&(x, y))
+    }
+    for (_, item) in map.iter_mut()
+    {
+        if let Item::Open(ref mut space) = item
         {
             space.clear();
         }
