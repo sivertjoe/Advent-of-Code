@@ -1,31 +1,27 @@
 fn from_base_5(num: &String) -> i64
 {
-    let from_char = |ch|
+    let from_char = |ch| match ch
     {
-        match ch
-        {
-            '2' => 2,
-            '1' => 1,
-            '0' => 0,
-            '-' => -1,
-            '=' => -2,
-            _ => unreachable!()
-                
-        }
+        '2' => 2,
+        '1' => 1,
+        '0' => 0,
+        '-' => -1,
+        '=' => -2,
+        _ => unreachable!(),
     };
-    
-    num.chars().rev().enumerate().fold(0_i64, |acc, (i, x)|
-    {
-        acc + 5_i64.pow(i as u32) * from_char(x)
-    })
+
+    num.chars()
+        .rev()
+        .enumerate()
+        .fold(0_i64, |acc, (i, x)| acc + 5_i64.pow(i as u32) * from_char(x))
 }
 
-fn to_base_5(num: i64) -> String 
+fn to_base_5(num: i64) -> String
 {
     let mut num = num;
 
     let mut res = Vec::new();
-    while num > 0 
+    while num > 0
     {
         let n = (num % 5) as u32;
 
