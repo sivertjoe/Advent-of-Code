@@ -1,31 +1,38 @@
-YEAR=$1
-DAY=$2
-LEVEL=$3
-ANSWER=$4
-COOKIE="session=53616c7465645f5f44763025a95f1c1dc59510367cca79cf79f316cdde6e599548248373f8e02962a93f2f6c228fb234a5e2067b065bce461c7381eb956fc74e"
-
-STR=$(curl -X POST https://adventofcode.com/2022/day/$DAY/answer -H "Content-Type: application/x-www-form-urlencoded" -d "level=$LEVEL&answer=$ANSWER" --cookie "session=53616c7465645f5f44763025a95f1c1dc59510367cca79cf79f316cdde6e599548248373f8e02962a93f2f6c228fb234a5e2067b065bce461c7381eb956fc74e")
+#!/bin/bash
+# YEAR=$1
+# input_string=$(awk -v year="$YEAR" '$0 ~ year' README.md)
+# hex_color=$(echo "$input_string" | grep -o -E '[0-9a-fA-F]{6}' | cut -d')' -f1)
 #
-SUB="That's the right answer"
-if [[ "$STR" == *"$SUB"* ]]; then
-    echo "Its there"
+# decimal_color=$(( 16#${hex_color} ))
+# decimal_color=$(( decimal_color - 119048 ))
+# hex_color=$( printf "%x\n" ${decimal_color} )
+#
+# number=$(echo "$input_string" | sed -E "s/.*${YEAR}-★_([0-9]+)-.*/\1/")
+# number="${number:0:2}"
+# number=$(( number + 1 ))
+#
+# new_line="[![AoC $YEAR](https://img.shields.io/badge/$YEAR-★_$number-$hex_color)](https://adventofcode.com/$YEAR)"
+#
+# sed -i "/$YEAR-/c\\$new_line" README.md
+
+FOO1="yes"
+# FOO2="yes"
+
+N=2
+if [ -z $FOO1 ]; then
+    N=$(( N-1 ))
+fi
+if [ -z $FOO2 ]; then
+    N=$(( N-1 ))
 fi
 
-#URL=https://adventofcode.com/$YEAR/day/$DAY/input 
-#echo $URL
-#curl $URL --cookie $COOKIE > input
+echo $N
 
-# string1="day_02"
-# string2="day_15"
-#
-# # Extract the numeric part of the strings
-# num1=$(echo "${string1#day_}" | sed 's/^0*//')
-# num2=$(echo "${string2#day_}" | sed 's/^0*//')
-#
-# # Print the numeric parts
-# echo "num1: $num1"
-# echo "num2: $num2"
-#
-#!/bin/bash
+for (( i=0; i<$N; i++ ))
+do 
+   echo "Welcome $i times"
+done
 
-# Set the input string and regex
+if [ $N -gt 0 ]; then
+    echo "test"
+fi

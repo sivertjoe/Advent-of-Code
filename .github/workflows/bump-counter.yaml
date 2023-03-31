@@ -10,6 +10,8 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
+    permissions:
+      contents: write
 
     - name: check day
       run: |
@@ -53,6 +55,9 @@ jobs:
           echo "res2=$value_two" >> $GITHUB_ENV
         fi
 
+        echo "update1=yes" >> $GITHUB_ENV
+        echo "update2=yes" >> $GITHUB_ENV
+
     - name: submit answers
       run: |
         echo "${{ env.res1 }}"
@@ -76,3 +81,52 @@ jobs:
         if [[ "$STR" == *"$SUB"* ]]; then
           echo "Part two done"
         fi
+
+    - name: update README
+      run: |
+        N=0
+        if [ ${{ env.update1 }} == "yes" ]; then
+          N=$(( {N}+1 ))
+        fi
+        if [ ${{ env.update2 }} == "yes" ]; then
+          N=$(( {N}+1 ))
+        fi
+        N=2
+        
+        if [ -z ${{ env.update1 }} ]; then
+          N=$(( N-1 ))
+        fi
+
+        if [ -z ${{ env.update2 }} ]; then
+          N=$(( N-1 ))
+        fi
+        
+        for (( i=0; i<$N; i++ ))
+        do
+          input_string=$(awk -v year="$YEAR" '$0 ~ year' README.md)
+          hex_color=$(echo "$input_string" | grep -o -E '[0-9a-fA-F]{6}' | cut -d')' -f1)
+
+          decimal_color=$(( 16#${hex_color} ))
+          decimal_color=$(( decimal_color - 119048 ))
+          hex_color=$( printf "%x\n" ${decimal_color} )
+
+          number=$(echo "$input_string" | sed -E "s/.*${YEAR}-★_([0-9]+)-.*/\1/")
+          number="${number:0:2}"
+          number=$(( number + 1 ))
+
+          new_line="[![AoC $YEAR](https://img.shields.io/badge/$YEAR-★_$number-$hex_color)](https://adventofcode.com/$YEAR)"
+
+          sed -i "/$YEAR-/c\\$new_line" README.md
+        done
+    - uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: update(README.md): star count and color
+
+
+
+
+
+
+
+
+
