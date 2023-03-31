@@ -27,7 +27,7 @@ jobs:
 
     - name: Compile day and run day
       run: |
-        rustc ${{ env.year }}/${{ env.day }}/main.rs -C opt-level=3
+        rustc --edition 2021 ${{ env.year }}/${{ env.day }}/main.rs -C opt-level=3
 
         day=${{ env.day }}
         day=$(echo "${day#day_}" | sed 's/^0*//')
