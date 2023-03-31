@@ -11,12 +11,65 @@ jobs:
       with:
         toolchain: stable
 
-    - name: Print changed files
+    - name: check day
       run: |
-        git fetch
+        # get a list of the changed file
+        git fetch --prune --unshallow
         STR=$(git diff --name-only HEAD^ HEAD)
         year=$(echo "$STR" | grep -oE "[0-9]{4}" | head -n 1)
         day=$(echo "$STR" | grep -oE "day_[0-9]{2}" | head -n 1)
+        
         if [ -z "$year" ] || [ -z "$day" ]; then
             exit 1
+        fi
+        echo "year=$year" >> $GITHUB_ENV
+        echo "day=$day" >> $GITHUB_ENV
+
+    - name: Compile day and run day
+      run: |
+        rustc ${{ env.year }}/${{ env.day }}/main.rs -C opt-level=3
+
+        day=${{ env.day }}
+        day=$(echo "${day#day_}" | sed 's/^0*//')
+
+        # download input file
+        URL=https://adventofcode.com/${{ env.year }}/day/$day/input 
+        curl $URL --cookie ${{ secrets.AOC_TOKEN }} > input
+
+        OUTPUT=$(./main input)
+        # remove colors Xd
+        OUTPUT=$(echo "$OUTPUT" | sed $'s,\x1b\\[[0-9;]*[a-zA-Z],,g')
+
+        regex1="Task one:\s+(\w+)"
+        regex2="Task two:\s+(\w+)"
+
+        value_one=$(echo "$OUTPUT" | egrep -o "$regex1" | awk '{print $NF}')
+        if [ -n "$value_one" ]; then
+          echo "res1=$value_one" >> $GITHUB_ENV
+        fi
+
+        value_two=$(echo "$OUTPUT" | egrep -o "$regex2" | awk '{print $NF}')
+        if [ -n "$value_two" ]; then
+          echo "res2=$value_two" >> $GITHUB_ENV
+        fi
+
+    - name: submit answers
+      run: |
+        echo "${{ env.res1 }}"
+        echo "${{ env.res2 }}"
+        # remove day_ and leading 0
+        day=${{ env.day }}
+        day=$(echo "${day#day_}" | sed 's/^0*//')
+        URL=https://adventofcode.com/${{ env.year }}/day/$day/answer 
+
+        STR=$(curl $URL -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "level=1&answer=${{ env.res1 }}" --cookie  ${{ secrets.AOC_TOKEN }})
+        SUB="That's the right answer"
+        if [[ "$STR" == *"$SUB"* ]]; then
+          echo "Part one done"
+        fi
+
+        STR=$(curl $URL -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "level=2&answer=${{ env.res2 }}" --cookie  ${{ secrets.AOC_TOKEN }})
+        SUB="That's the right answer"
+        if [[ "$STR" == *"$SUB"* ]]; then
+          echo "Part two done"
         fi
