@@ -68,6 +68,9 @@ jobs:
           echo "Part one done"
         fi
 
+        # Need to wait 'a bit' for AOC servers
+        sleep 5
+
         STR=$(curl $URL -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "level=2&answer=${{ env.res2 }}" --cookie  ${{ secrets.AOC_TOKEN }})
         SUB="That's the right answer"
         if [[ "$STR" == *"$SUB"* ]]; then
