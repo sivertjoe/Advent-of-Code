@@ -18,6 +18,7 @@ fn task_two(input: &[String]) -> usize {
 
 fn main() {
     let input = read_input(get_input_file());
+    let input = read_input(get_input_file());
     time(Task::One, task_one, &input);
     time(Task::Two, task_two, &input);
 }
