@@ -1,0 +1,105 @@
+[package]
+name = "aoc_2022"
+version = "0.1.0"
+edition = "2021"
+
+# hehe
+[[bin]]
+name = "day_01"
+path = "day_01/main.rs"
+
+[[bin]]
+name = "day_02"
+path = "day_02/main.rs"
+
+[[bin]]
+name = "day_03"
+path = "day_03/main.rs"
+
+[[bin]]
+name = "day_04"
+path = "day_04/main.rs"
+
+[[bin]]
+name = "day_05"
+path = "day_05/main.rs"
+
+[[bin]]
+name = "day_06"
+path = "day_06/main.rs"
+
+[[bin]]
+name = "day_07"
+path = "day_07/main.rs"
+
+[[bin]]
+name = "day_08"
+path = "day_08/main.rs"
+
+[[bin]]
+name = "day_09"
+path = "day_09/main.rs"
+
+[[bin]]
+name = "day_10"
+path = "day_10/main.rs"
+
+[[bin]]
+name = "day_11"
+path = "day_11/main.rs"
+
+[[bin]]
+name = "day_12"
+path = "day_12/main.rs"
+
+[[bin]]
+name = "day_13"
+path = "day_13/main.rs"
+
+[[bin]]
+name = "day_14"
+path = "day_14/main.rs"
+
+[[bin]]
+name = "day_15"
+path = "day_15/main.rs"
+
+[[bin]]
+name = "day_16"
+path = "day_16/main.rs"
+
+[[bin]]
+name = "day_17"
+path = "day_17/main.rs"
+
+[[bin]]
+name = "day_18"
+path = "day_18/main.rs"
+
+[[bin]]
+name = "day_19"
+path = "day_19/main.rs"
+
+[[bin]]
+name = "day_20"
+path = "day_20/main.rs"
+
+[[bin]]
+name = "day_21"
+path = "day_21/main.rs"
+
+[[bin]]
+name = "day_22"
+path = "day_22/main.rs"
+
+[[bin]]
+name = "day_23"
+path = "day_23/main.rs"
+
+[[bin]]
+name = "day_24"
+path = "day_24/main.rs"
+
+[[bin]]
+name = "day_25"
+path = "day_25/main.rs"
