@@ -5,14 +5,14 @@ name: year increament counter
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
-    permissions:
-      contents: write
-
     - name: check day
       run: |
         # get a list of the changed file
@@ -103,6 +103,7 @@ jobs:
         
         for (( i=0; i<$N; i++ ))
         do
+          YEAR=${{ env.year }}
           input_string=$(awk -v year="$YEAR" '$0 ~ year' README.md)
           hex_color=$(echo "$input_string" | grep -o -E '[0-9a-fA-F]{6}' | cut -d')' -f1)
 
