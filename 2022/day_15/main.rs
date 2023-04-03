@@ -11,7 +11,6 @@ fn parse(line: &str) -> (Point, Point)
         .split([' ', '=', ':', ','])
         .flat_map(|tok| tok.parse::<isize>())
         .collect::<Vec<_>>();
-
     let x = spl[0];
     let y = spl[1];
     let z = spl[2];
