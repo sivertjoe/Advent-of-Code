@@ -236,7 +236,7 @@ fn task_one(input: &[String]) -> usize
 
 fn task_two(input: &[String]) -> usize
 {
-    tetris::<1_000_000_000_000>(&input[0])
+    tetris::<1_000_000_000_000>(&input[0]) + 1
 }
 
 fn main()
