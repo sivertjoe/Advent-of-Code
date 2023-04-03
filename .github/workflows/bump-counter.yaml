@@ -119,15 +119,7 @@ jobs:
 
           sed -i "/$YEAR-/c\\$new_line" README.md
         done
+
     - uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: update(README.md): star count and color
-
-
-
-
-
-
-
-
-
