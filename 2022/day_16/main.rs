@@ -10,6 +10,7 @@ struct Room
 fn parse_data(lines: &[String]) -> HashMap<String, Room>
 {
     let mut rooms = HashMap::new();
+
     for line in lines
     {
         let line = line.replace(',', "");
