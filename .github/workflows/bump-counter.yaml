@@ -67,32 +67,33 @@ jobs:
         day=$(echo "${day#day_}" | sed 's/^0*//')
         URL=https://adventofcode.com/${{ env.year }}/day/$day/answer 
 
-        STR=$(curl $URL -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "level=1&answer=${{ env.res1 }}" --cookie  ${{ secrets.AOC_TOKEN }})
         SUB="That's the right answer"
+        WRONG="That's not the right answer;"
+        STR=$(curl $URL -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "level=1&answer=${{ env.res1 }}" --cookie  ${{ secrets.AOC_TOKEN }})
+
         if [[ "$STR" == *"$SUB"* ]]; then
           echo "Part one done"
+        fi
+        if [[ "$STR" == *"$WRONG"* ]]; then
+          echo "Wrong answer on part 1"
+          exit 1
         fi
 
         # Need to wait 'a bit' for AOC servers
         sleep 5
 
         STR=$(curl $URL -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "level=2&answer=${{ env.res2 }}" --cookie  ${{ secrets.AOC_TOKEN }})
-        SUB="That's the right answer"
         if [[ "$STR" == *"$SUB"* ]]; then
           echo "Part two done"
+        fi
+        if [[ "$STR" == *"$WRONG"* ]]; then
+          echo "Wrong answer on part 2"
+          exit 1
         fi
 
     - name: update README
       run: |
-        N=0
-        if [ ${{ env.update1 }} == "yes" ]; then
-          N=$(( {N}+1 ))
-        fi
-        if [ ${{ env.update2 }} == "yes" ]; then
-          N=$(( {N}+1 ))
-        fi
         N=2
-        
         if [ -z ${{ env.update1 }} ]; then
           N=$(( N-1 ))
         fi
