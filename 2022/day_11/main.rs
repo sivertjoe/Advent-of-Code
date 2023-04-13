@@ -22,6 +22,7 @@ struct Monkey
 fn parse_oper(s: &str) -> Operation
 {
     let mut spl = s.split_whitespace().skip(3);
+    let foo = 5;
 
     let op = spl.next().unwrap();
     let val = spl
