@@ -1,58 +1,46 @@
-fn task_one(input: &[String]) -> usize
-{
-    let _iter = input
-        .into_iter()
-        .map(|line| {
-            let s = line.chars().find(|c| c.is_digit(10)).unwrap();
-            let c = line.chars().rev().find(|c| c.is_digit(10)).unwrap();
+use itertools::Itertools;
 
-            format!("{s}{c}").parse::<usize>().unwrap()
-        })
-        .sum::<usize>();
-    _iter
+fn sum_calibration_values<'a, F, I>(input: &'a [String], parse_func: F) -> u32
+where F: Fn(&'a String) -> I,
+      I: Iterator<Item = (usize, u32)>
+{
+    input.iter().map(|line| {
+        let (min, max) = parse_func(line)
+                            .minmax_by_key(|(idx, _)| *idx)
+                            .into_option()
+                            .map(|(min, max)| (min.1, max.1))
+                            .unwrap();
+        min * 10 + max
+    }).sum()
 }
 
-fn task_two(input: &[String]) -> usize
+fn parse_char_digits<'a>(line: &'a String) -> impl Iterator<Item = (usize, u32)> + 'a
 {
-    let nums = [
+    line.chars().enumerate().filter_map(|(idx, ch)| ch.to_digit(10).map(|d| (idx, d)))
+}
+
+fn parse_text_digits<'a>(line: &'a String) -> impl Iterator<Item = (usize, u32)> + 'a
+{
+    const NUMS: [&'static str; 9] = [
         "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
     ];
 
-    input
-        .into_iter()
-        .map(|line| {
-            let mut vec: Vec<(usize, usize)> = Vec::new();
-            for (i, n) in nums.iter().enumerate()
-            {
-                /*if let Some(nn) = line.find(n)
-                {
-                    let a = i + 1;
-                    vec.push((nn, a));
-                }*/
-                for (idx, _) in line.match_indices(n)
-                {
-                    let a = i + 1;
-                    vec.push((idx, a));
-                }
-            }
-            for (i, n) in line.chars().enumerate()
-            {
-                if n.is_digit(10)
-                {
-                    let a = n.to_string().parse::<usize>().unwrap();
-                    vec.push((i, a));
-                }
-            }
+    NUMS
+        .iter()
+        .enumerate()
+        .map(|(i, num)| line.match_indices(num).map(move |(idx, _)| (idx, i as u32 + 1)))
+        .flatten()
+}
 
-            vec.sort_by_key(|k| k.0);
-            let first = vec.first().unwrap_or(&(0, 0));
-            let last = vec.last().unwrap_or(&(0, 0));
+fn task_one(input: &[String]) -> u32
+{
+    sum_calibration_values(input, parse_char_digits)
+}
 
-            let value = first.1 * 10 + last.1;
-            //println!("{line} = {value}",);
-            value
-        })
-        .sum()
+fn task_two(input: &[String]) -> u32
+{
+    sum_calibration_values(input, |line| parse_char_digits(line)
+                                            .chain(parse_text_digits(line)))
 }
 
 fn main()
