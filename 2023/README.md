@@ -3,6 +3,5 @@
 ## To compile a specific day just
 ```bash
 $ cd {day}
-$ rustc main.rs
-$ ./main
+$ cargo run --bin {day}
 ```
