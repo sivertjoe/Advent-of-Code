@@ -1,15 +1,14 @@
-trait Bfs 
-{
+trait Bfs {
     type Item;
     type Index;
 
     fn compare(&self, index1: &Self::Index, index2: &Self::Index) -> bool;
     fn is_goal(&self, index: &Self::Index) -> bool;
-    fn neighbors(&self, curr: &Self::Index) -> impl Iterator<Item=Self::Index>;
+    fn neighbors(&self, curr: &Self::Index) -> impl Iterator<Item = Self::Index>;
 
     fn bfs(&self, start: Self::Index) -> usize
-        where 
-            Self::Index: Sized + Clone + Eq + std::hash::Hash 
+    where
+        Self::Index: Sized + Clone + Eq + std::hash::Hash,
     {
         use std::collections::*;
         let mut vec = VecDeque::new();
@@ -18,17 +17,13 @@ trait Bfs
         vec.push_back((0, start.clone()));
         seen.insert(start);
 
-        while let Some((cost, pos)) = vec.pop_front()
-        {
-            if self.is_goal(&pos)
-            {
+        while let Some((cost, pos)) = vec.pop_front() {
+            if self.is_goal(&pos) {
                 return cost;
             }
 
-            for neighbor in self.neighbors(&pos)
-            {
-                if self.compare(&pos, &neighbor) && seen.insert(neighbor.clone())
-                {
+            for neighbor in self.neighbors(&pos) {
+                if self.compare(&pos, &neighbor) && seen.insert(neighbor.clone()) {
                     vec.push_back((cost + 1, neighbor));
                 }
             }
@@ -38,7 +33,7 @@ trait Bfs
 }
 
 /*
- * EXAMPLE IMPLEMENTATION 
+ * EXAMPLE IMPLEMENTATION
  * BASED ON 2022/day_12
  *
 struct Task(Vec<Vec<u8>>, u8);
@@ -48,7 +43,7 @@ impl Bfs for Task
     type Index=(usize, usize);
 
     fn is_goal(&self, idx: &Self::Index) -> bool { self.0[idx.1][idx.0] == self.1 }
-    fn compare(&self, idx1: &Self::Index, idx2: &Self::Index) -> bool 
+    fn compare(&self, idx1: &Self::Index, idx2: &Self::Index) -> bool
     {
         self.0[idx1.1][idx1.0] - 1 <= self.0[idx2.1][idx2.0]
     }
