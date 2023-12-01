@@ -1,48 +1,38 @@
-use itertools::Itertools;
-
-fn sum_calibration_values<'a, F, I>(input: &'a [String], parse_func: F) -> u32
-where
-    F: Fn(&'a String) -> I,
-    I: Iterator<Item = (usize, u32)>,
-{
+fn sum_calibration_values(input: &[String], part_two: bool) -> usize {
     input
         .iter()
         .map(|line| {
-            parse_func(line)
-                .minmax_by_key(|(idx, _)| *idx)
-                .into_option()
-                .map(|(min, max)| min.1 * 10 + max.1)
-                .unwrap()
+            let mut nums = get_numbers(&line, part_two);
+            let min = nums.next().unwrap();
+            let max = nums.last().unwrap_or(min);
+            min * 10 + max
         })
         .sum()
 }
 
-fn parse_char_digits(line: &String) -> impl Iterator<Item = (usize, u32)> + '_ {
-    line.chars()
-        .enumerate()
-        .filter_map(|(idx, ch)| ch.to_digit(10).map(|d| (idx, d)))
-}
-
-fn parse_text_digits(line: &String) -> impl Iterator<Item = (usize, u32)> + '_ {
-    [
+fn get_numbers(line: &str, part_two: bool) -> impl Iterator<Item = usize> + '_ {
+    const NUMS: [&'static str; 9] = [
         "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
-    ]
-    .iter()
-    .enumerate()
-    .flat_map(|(i, text_num)| {
-        line.match_indices(text_num)
-            .map(move |(idx, _)| (idx, i as u32 + 1))
+    ];
+
+    let bytes = line.as_bytes();
+
+    (0..line.len()).flat_map(move |i| match bytes[i] {
+        b @ b'0'..=b'9' => Some((b - b'0') as usize),
+        _ if part_two => NUMS
+            .iter()
+            .enumerate()
+            .find_map(|(num, text)| (line[i..].starts_with(text)).then_some(num + 1)),
+        _ => None,
     })
 }
 
-fn task_one(input: &[String]) -> u32 {
-    sum_calibration_values(input, parse_char_digits)
+fn task_one(input: &[String]) -> usize {
+    sum_calibration_values(input, false)
 }
 
-fn task_two(input: &[String]) -> u32 {
-    sum_calibration_values(input, |line| {
-        parse_char_digits(line).chain(parse_text_digits(line))
-    })
+fn task_two(input: &[String]) -> usize {
+    sum_calibration_values(input, true)
 }
 
 fn main() {
