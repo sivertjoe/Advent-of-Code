@@ -8,34 +8,31 @@ where
     input
         .iter()
         .map(|line| {
-            let (min, max) = parse_func(line)
+            parse_func(line)
                 .minmax_by_key(|(idx, _)| *idx)
                 .into_option()
-                .map(|(min, max)| (min.1, max.1))
-                .unwrap();
-            min * 10 + max
+                .map(|(min, max)| min.1 * 10 + max.1)
+                .unwrap()
         })
         .sum()
 }
 
-fn parse_char_digits<'a>(line: &'a String) -> impl Iterator<Item = (usize, u32)> + 'a {
+fn parse_char_digits(line: &String) -> impl Iterator<Item = (usize, u32)> + '_ {
     line.chars()
         .enumerate()
         .filter_map(|(idx, ch)| ch.to_digit(10).map(|d| (idx, d)))
 }
 
-fn parse_text_digits<'a>(line: &'a String) -> impl Iterator<Item = (usize, u32)> + 'a {
-    const NUMS: [&'static str; 9] = [
+fn parse_text_digits(line: &String) -> impl Iterator<Item = (usize, u32)> + '_ {
+    [
         "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
-    ];
-
-    NUMS.iter()
-        .enumerate()
-        .map(|(i, num)| {
-            line.match_indices(num)
-                .map(move |(idx, _)| (idx, i as u32 + 1))
-        })
-        .flatten()
+    ]
+    .iter()
+    .enumerate()
+    .flat_map(|(i, text_num)| {
+        line.match_indices(text_num)
+            .map(move |(idx, _)| (idx, i as u32 + 1))
+    })
 }
 
 fn task_one(input: &[String]) -> u32 {
