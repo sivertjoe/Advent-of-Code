@@ -1,87 +1,86 @@
-use std::collections::*;
+use itertools::Itertools;
 
-fn parse_game(line: &str) -> (isize, Vec<Vec<(String, isize)>>) {
-    let line = line.replace(',', "");
-    let mut split = line.split(": ");
-    let id = split
-        .next()
-        .unwrap()
-        .split(' ')
-        .nth(1)
-        .unwrap()
-        .parse::<isize>()
-        .unwrap();
+enum Ball {
+    Red,
+    Blue,
+    Green,
+}
 
-    let mut semi = split.next().unwrap().split("; ");
-    let fin = semi
-        .map(|sub| {
-            let mut v = Vec::new();
-            let mut iter = sub.split(' ');
-            while let (Some(num), Some(color)) = (iter.next(), iter.next()) {
-                let num = num.parse::<isize>().unwrap();
-                let color = color.to_string();
-                v.push((color, num));
-            }
-            v
+struct Game {
+    id: usize,
+    rounds: Vec<Vec<(Ball, usize)>>,
+}
+
+fn parse_round(s: &str) -> Vec<(Ball, usize)> {
+    s.split(' ')
+        .tuples()
+        .map(|(num, color)| {
+            let num = num.parse::<usize>().unwrap();
+            let ball = match color {
+                "red" => Ball::Red,
+                "green" => Ball::Green,
+                "blue" => Ball::Blue,
+                _ => unreachable!(),
+            };
+            (ball, num)
         })
-        .collect::<Vec<_>>();
-
-    (id, fin)
+        .collect()
 }
 
-fn task_one(input: &[String]) -> isize {
-    let mut iter = input.iter().map(|n| parse_game(n));
-    let mut counter = 0;
-    'gam: for game in iter {
-        for set in game.1 {
-            let mut red = 12;
-            let mut green = 13;
-            let mut blue = 14;
+fn parse_game(line: &String) -> Game {
+    let line = line.replace(',', "");
+    let (id, rounds) = line.split_once(": ").unwrap();
+    let id = id.split(' ').nth(1).unwrap().parse::<usize>().unwrap();
 
-            for (color, num) in set {
-                match color.as_str().trim() {
-                    "blue" => blue -= num,
-                    "red" => red -= num,
-                    "green" => green -= num,
-                    e => panic!("??{e}??"),
-                }
-            }
-            if red < 0 || green < 0 || blue < 0 {
-                continue 'gam;
-            }
-        }
-        counter += game.0;
-    }
-    counter
+    let rounds = rounds.split("; ").map(parse_round).collect();
+
+    Game { id, rounds }
 }
 
-fn task_two(input: &[String]) -> isize {
-    let mut iter = input.iter().map(|n| parse_game(n));
-    let mut counter = 0;
-    for game in iter {
-        let mut mred = 0;
-        let mut mgreen = 0;
-        let mut mblue = 0;
-        for set in game.1 {
-            let mut red = 0;
-            let mut green = 0;
-            let mut blue = 0;
+fn task_one(input: &[String]) -> usize {
+    const RED: usize = 12;
+    const GREEN: usize = 13;
+    const BLUE: usize = 14;
+    input
+        .iter()
+        .map(parse_game)
+        .filter_map(|game| {
+            let is_valid = game.rounds.into_iter().all(|round| {
+                round.into_iter().all(|(ball, num)| match ball {
+                    Ball::Red => num <= RED,
+                    Ball::Green => num <= GREEN,
+                    Ball::Blue => num <= BLUE,
+                })
+            });
+            is_valid.then_some(game.id)
+        })
+        .sum()
+}
 
-            for (color, num) in set {
-                match color.as_str().trim() {
-                    "blue" => blue += num,
-                    "red" => red += num,
-                    "green" => green += num,
-                    e => panic!("??{e}??"),
+fn task_two(input: &[String]) -> usize {
+    let get_fewest_cubes = |game: Game| -> (usize, usize, usize) {
+        game.rounds
+            .into_iter()
+            .fold((0, 0, 0), |(mut r, mut g, mut b), round| {
+                for (ball, num) in round {
+                    match ball {
+                        Ball::Red => r = r.max(num),
+                        Ball::Green => g = g.max(num),
+                        Ball::Blue => b = b.max(num),
+                    }
                 }
-            }
-            mred = mred.max(red);
-            mgreen = mgreen.max(green);
-            mblue = mblue.max(blue);
-        }
-        counter += mred * mgreen * mblue;
-    }
-    counter
+                (r, g, b)
+            })
+    };
+
+    input
+        .iter()
+        .map(|line| {
+            let game = parse_game(line);
+            let (r, g, b) = get_fewest_cubes(game);
+            r * g * b
+        })
+        .sum()
 }
 
 fn main() {
