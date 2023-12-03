@@ -64,14 +64,23 @@ where
 {
     let t = std::time::Instant::now();
     let res = f(arg);
-    let elapsed = t.elapsed().as_millis();
+    let elapsed = t.elapsed();
+    let fmt = std::env::var("TASKUNIT").unwrap_or("ms".to_owned());
+
+    let (u, elapsed) = match fmt.as_str() {
+        "ms" => ("ms", elapsed.as_millis()),
+        "ns" => ("ns", elapsed.as_nanos()),
+        "us" => ("μs", elapsed.as_micros()),
+        "s" => ("s", elapsed.as_secs() as u128),
+        _ => panic!("unsupported time format"),
+    };
 
     match task {
         Task::One => {
-            println!("({}ms)\tTask one: \x1b[0;34;34m{}\x1b[0m", elapsed, res);
+            println!("({}{u})\tTask one: \x1b[0;34;34m{}\x1b[0m", elapsed, res);
         }
         Task::Two => {
-            println!("({}ms)\tTask two: \x1b[0;33;10m{}\x1b[0m", elapsed, res);
+            println!("({}{u})\tTask two: \x1b[0;33;10m{}\x1b[0m", elapsed, res);
         }
     };
 }
