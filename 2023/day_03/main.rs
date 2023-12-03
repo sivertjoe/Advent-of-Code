@@ -9,57 +9,58 @@ enum Cell {
 #[derive(Debug)]
 struct Elem {
     cell: Cell,
-    x: isize,
-    y: isize,
+    x: usize,
+    y: usize,
 }
 
-fn task_one(input: &[String]) -> usize {
+fn parse_schematic(input: &[String]) -> Vec<Elem> {
     let mut elems = Vec::new();
     let mx = input[0].as_bytes().len() - 1;
     for (y, line) in input.iter().enumerate() {
-        let y = y as isize;
-        let mut flag = false;
-        let mut acc = String::new();
+        //let mut vec = Vec::new();
         for (x, ch) in line.bytes().enumerate() {
-            if !flag && ch.is_ascii_digit() {
-                flag = true;
-                acc.clear();
-            }
-
-            if flag && !ch.is_ascii_digit() {
-                flag = false;
-                let num = acc.parse::<usize>().unwrap();
-                elems.push(Elem {
-                    cell: Cell::Gear(num),
-                    x: x as isize - 1,
-                    y,
-                });
-            }
-
-            if flag && ch.is_ascii_digit() {
-                acc.push(ch as char);
-            }
-
-            if x == mx && flag {
-                flag = false;
-                let num = acc.parse::<usize>().unwrap();
-                elems.push(Elem {
-                    cell: Cell::Gear(num),
-                    x: x as isize,
-                    y,
-                });
-            }
-
-            if ch != b'.' && !ch.is_ascii_digit() {
+            if !ch.is_ascii_digit() && ch != b'.' {
                 elems.push(Elem {
                     cell: Cell::Sym(ch as char),
-                    x: x as isize,
+                    x,
                     y,
                 });
             }
         }
-    }
 
+        let mut number = String::new();
+        let mut index = 0;
+
+        for (x, ch) in line.bytes().enumerate() {
+            if ch.is_ascii_digit() {
+                if number.is_empty() {
+                    index = x;
+                }
+                number.push(ch as char);
+            } else if !number.is_empty() {
+                let g = number.parse().unwrap();
+                elems.push(Elem {
+                    x: index,
+                    y,
+                    cell: Cell::Gear(g),
+                });
+                number.clear();
+            }
+        }
+        if !number.is_empty() {
+            let g = number.parse().unwrap();
+            elems.push(Elem {
+                x: index,
+                y,
+                cell: Cell::Gear(g),
+            });
+        }
+    }
+    elems
+}
+
+fn task_one(input: &[String]) -> usize {
+    let elems = parse_schematic(input);
     let mut sum = 0;
     for elem in elems.iter() {
         if matches!(elem.cell, Cell::Sym(a)) {
@@ -76,8 +77,8 @@ fn find(elem: &Elem, elems: &[Elem]) -> Vec<usize> {
     for e in elems {
         if let Cell::Gear(g) = e.cell {
             let len = g.to_string().len();
-            let x0 = e.x - (len as isize - 1);
-            let x1 = e.x;
+            let x0 = e.x;
+            let x1 = e.x + (len - 1);
 
             if (x0..=x1)
                 .find(|x| e.y.abs_diff(elem.y) <= 1 && x.abs_diff(elem.x) <= 1)
@@ -91,51 +92,7 @@ fn find(elem: &Elem, elems: &[Elem]) -> Vec<usize> {
 }
 
 fn task_two(input: &[String]) -> usize {
-    let mut elems = Vec::new();
-    let mx = input[0].as_bytes().len() - 1;
-    for (y, line) in input.iter().enumerate() {
-        let y = y as isize;
-        let mut flag = false;
-        let mut acc = String::new();
-        for (x, ch) in line.bytes().enumerate() {
-            if !flag && ch.is_ascii_digit() {
-                flag = true;
-                acc.clear();
-            }
-
-            if flag && !ch.is_ascii_digit() {
-                flag = false;
-                let num = acc.parse::<usize>().unwrap();
-                elems.push(Elem {
-                    cell: Cell::Gear(num),
-                    x: x as isize - 1,
-                    y,
-                });
-            }
-
-            if flag && ch.is_ascii_digit() {
-                acc.push(ch as char);
-            }
-
-            if x == mx && flag {
-                flag = false;
-                let num = acc.parse::<usize>().unwrap();
-                elems.push(Elem {
-                    cell: Cell::Gear(num),
-                    x: x as isize,
-                    y,
-                });
-            }
-
-            if ch != b'.' && !ch.is_ascii_digit() {
-                elems.push(Elem {
-                    cell: Cell::Sym(ch as char),
-                    x: x as isize,
-                    y,
-                });
-            }
-        }
-    }
+    let elems = parse_schematic(input);
 
     let mut sum = 0;
     for elem in elems.iter() {
