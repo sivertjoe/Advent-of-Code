@@ -1,36 +1,21 @@
-use std::collections::*;
-
-enum Cell {
-    Gear(usize),
-    Sym(char),
-}
-
-struct Elem {
-    cell: Cell,
-    x: usize,
-    y: usize,
-}
-
-struct Number(usize);
+struct Number(usize, usize);
 struct Symbol(char);
 
-fn parse_schematic(input: &[String]) -> (Vec<Vec<(Number, usize)>>, Vec<(Symbol, usize, usize)>) {
-    let mut nums = Vec::new();
-    let mut syms = Vec::new();
-    let mx = input[0].as_bytes().len() - 1;
-    for (y, line) in input.iter().enumerate() {
-        let mut lnums = Vec::new();
+type NumbersMatrix = Vec<Vec<(Number, usize)>>;
+type SymbolList = Vec<(Symbol, usize, usize)>;
 
+fn parse_schematic(input: &[String]) -> (NumbersMatrix, SymbolList) {
+    let mut nums = Vec::with_capacity(140);
+    let mut syms = Vec::new();
+    for (y, line) in input.iter().enumerate() {
+        let mut lnums = Vec::with_capacity(10);
+
+        let mut number = String::with_capacity(3);
+        let mut index = 0;
         for (x, ch) in line.bytes().enumerate() {
             if !ch.is_ascii_digit() && ch != b'.' {
                 syms.push((Symbol(ch as char), x, y));
             }
-        }
-
-        let mut number = String::new();
-        let mut index = 0;
-
-        for (x, ch) in line.bytes().enumerate() {
             if ch.is_ascii_digit() {
                 if number.is_empty() {
                     index = x;
@@ -38,21 +23,23 @@ fn parse_schematic(input: &[String]) -> (Vec<Vec<(Number, usize)>>, Vec<(Symbol,
                 number.push(ch as char);
             } else if !number.is_empty() {
                 let g = number.parse().unwrap();
-                lnums.push((Number(g), index));
+                lnums.push((Number(g, number.len() - 1), index));
                 number.clear();
             }
         }
+
         if !number.is_empty() {
             let g = number.parse().unwrap();
-            lnums.push((Number(g), index));
+            lnums.push((Number(g, number.len() - 1), index));
         }
 
         nums.push(lnums);
     }
+
     (nums, syms)
 }
 
-fn find((x, y): (usize, usize), numbers: &[Vec<(Number, usize)>]) -> Vec<usize> {
+fn find(x: usize, y: usize, numbers: &[Vec<(Number, usize)>]) -> Vec<usize> {
     let mut vec = Vec::with_capacity(4);
     for y in [
         y.saturating_sub(1),
@@ -60,11 +47,10 @@ fn find((x, y): (usize, usize), numbers: &[Vec<(Number, usize)>]) -> Vec<usize> 
         std::cmp::min(numbers.len() - 1, y + 1),
     ] {
         for (num, _x) in &numbers[y] {
-            let len = num.0.to_string().len();
             let x0 = *_x;
-            let x1 = *_x + (len - 1);
+            let x1 = *_x + num.1;
 
-            if (x0..=x1).find(|nx| nx.abs_diff(x) <= 1).is_some() {
+            if (x0..=x1).any(|nx| nx.abs_diff(x) <= 1) {
                 vec.push(num.0);
             }
         }
@@ -77,39 +63,23 @@ fn task_one(input: &[String]) -> usize {
 
     symbols
         .into_iter()
-        .flat_map(|(_sym, x, y)| find((x, y), &numbers).into_iter())
+        .flat_map(|(_sym, x, y)| find(x, y, &numbers).into_iter())
         .sum()
 }
 
 fn task_two(input: &[String]) -> usize {
     let (numbers, symbols) = parse_schematic(input);
 
-    symbols
-        .into_iter()
-        .filter_map(|(sym, x, y)| {
-            if sym.0 == '*' {
-                let nums = find((x, y), &numbers);
-                if nums.len() == 2 {
-                    Some(nums[0] * nums[1])
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        })
-        .sum()
-
-    /*let mut sum = 0;
+    let mut sum = 0;
     for (sym, x, y) in symbols {
         if sym.0 == '*' {
-            let nums = find((x, y), &numbers);
+            let nums = find(x, y, &numbers);
             if nums.len() == 2 {
-                sum += nums[0] * nums[1];
+                sum += nums[0] * nums[1]
             }
         }
     }
-    sum*/
+    sum
 }
 
 fn main() {
