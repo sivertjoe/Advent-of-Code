@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-enum Ball {
+enum Cube {
     Red,
     Blue,
     Green,
@@ -8,18 +8,18 @@ enum Ball {
 
 struct Game {
     id: usize,
-    rounds: Vec<Vec<(Ball, usize)>>,
+    rounds: Vec<(Cube, usize)>,
 }
 
-fn parse_round(s: &str) -> Vec<(Ball, usize)> {
+fn parse_rounds(s: &str) -> Vec<(Cube, usize)> {
     s.split(' ')
         .tuples()
         .map(|(num, color)| {
             let num = num.parse::<usize>().unwrap();
             let ball = match color {
-                "red" => Ball::Red,
-                "green" => Ball::Green,
-                "blue" => Ball::Blue,
+                "red" => Cube::Red,
+                "green" => Cube::Green,
+                "blue" => Cube::Blue,
                 _ => unreachable!(),
             };
             (ball, num)
@@ -28,11 +28,11 @@ fn parse_round(s: &str) -> Vec<(Ball, usize)> {
 }
 
 fn parse_game(line: &String) -> Game {
-    let line = line.replace(',', "");
+    let line = line.replace([',', ';'], "");
     let (id, rounds) = line.split_once(": ").unwrap();
     let id = id.split(' ').nth(1).unwrap().parse::<usize>().unwrap();
 
-    let rounds = rounds.split("; ").map(parse_round).collect();
+    let rounds = parse_rounds(rounds);
 
     Game { id, rounds }
 }
@@ -45,12 +45,10 @@ fn task_one(input: &[String]) -> usize {
         .iter()
         .map(parse_game)
         .filter_map(|game| {
-            let is_valid = game.rounds.into_iter().all(|round| {
-                round.into_iter().all(|(ball, num)| match ball {
-                    Ball::Red => num <= RED,
-                    Ball::Green => num <= GREEN,
-                    Ball::Blue => num <= BLUE,
-                })
+            let is_valid = game.rounds.into_iter().all(|(ball, num)| match ball {
+                Cube::Red => num <= RED,
+                Cube::Green => num <= GREEN,
+                Cube::Blue => num <= BLUE,
             });
             is_valid.then_some(game.id)
         })
@@ -61,13 +59,11 @@ fn task_two(input: &[String]) -> usize {
     let get_fewest_cubes = |game: Game| -> (usize, usize, usize) {
         game.rounds
             .into_iter()
-            .fold((0, 0, 0), |(mut r, mut g, mut b), round| {
-                for (ball, num) in round {
-                    match ball {
-                        Ball::Red => r = r.max(num),
-                        Ball::Green => g = g.max(num),
-                        Ball::Blue => b = b.max(num),
-                    }
+            .fold((0, 0, 0), |(mut r, mut g, mut b), (ball, num)| {
+                match ball {
+                    Cube::Red => r = r.max(num),
+                    Cube::Green => g = g.max(num),
+                    Cube::Blue => b = b.max(num),
                 }
                 (r, g, b)
             })
