@@ -1,26 +1,23 @@
 use std::collections::*;
 
 fn parse(input: &[String]) -> Vec<(HashSet<usize>, HashSet<usize>)> {
+    let parse_numbers = |s: &str| {
+        s.split_ascii_whitespace()
+            .map(|w| w.parse::<usize>().unwrap())
+            .collect::<HashSet<_>>()
+    };
     input
         .iter()
         .map(|line| {
             let (_, line) = line.split_once(": ").unwrap();
             let (winning, mine) = line.split_once(" | ").unwrap();
 
-            (
-                winning
-                    .split_ascii_whitespace()
-                    .map(|w| w.parse::<usize>().unwrap())
-                    .collect::<HashSet<_>>(),
-                mine.split_ascii_whitespace()
-                    .map(|w| w.parse::<usize>().unwrap())
-                    .collect::<HashSet<_>>(),
-            )
+            (parse_numbers(winning), parse_numbers(mine))
         })
         .collect()
 }
 
-fn calc_score(winning: &HashSet<usize>, mine: &HashSet<usize>) -> usize {
+fn calc_score((winning, mine): (HashSet<usize>, HashSet<usize>)) -> usize {
     let mut sum = 0;
     for num in mine {
         if winning.contains(&num) {
@@ -45,13 +42,7 @@ fn mat(winning: &HashSet<usize>, mine: &HashSet<usize>) -> usize {
 }
 
 fn task_one(input: &[String]) -> usize {
-    let p = parse(input);
-
-    let mut sum = 0;
-    for (winning, mine) in p {
-        sum += calc_score(&winning, &mine);
-    }
-    sum
+    parse(input).into_iter().map(calc_score).sum()
 }
 
 fn task_two(input: &[String]) -> usize {
