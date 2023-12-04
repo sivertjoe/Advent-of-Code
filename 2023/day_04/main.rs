@@ -18,27 +18,12 @@ fn parse(input: &[String]) -> Vec<(HashSet<usize>, HashSet<usize>)> {
 }
 
 fn calc_score((winning, mine): (HashSet<usize>, HashSet<usize>)) -> usize {
-    let mut sum = 0;
-    for num in mine {
-        if winning.contains(&num) {
-            if sum > 0 {
-                sum *= 2;
-            } else {
-                sum += 1;
-            }
-        }
+    let len = winning.intersection(&mine).count() as u32;
+    if len == 0 {
+        0
+    } else {
+        2_usize.pow(len.saturating_sub(1))
     }
-    sum
-}
-
-fn mat(winning: &HashSet<usize>, mine: &HashSet<usize>) -> usize {
-    let mut sum = 0;
-    for num in mine {
-        if winning.contains(&num) {
-            sum += 1;
-        }
-    }
-    sum
 }
 
 fn task_one(input: &[String]) -> usize {
@@ -52,7 +37,7 @@ fn task_two(input: &[String]) -> usize {
 
     for (id, (winning, mine)) in p.into_iter().enumerate() {
         let id = id + 1;
-        let num_matches = mat(&winning, &mine);
+        let num_matches = winning.intersection(&mine).count();
         for i in id..id + num_matches {
             vec[i] += vec[id - 1];
         }
