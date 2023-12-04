@@ -1,4 +1,4 @@
-use std::collections::*;
+type HashSet<T> = std::collections::HashSet<T, fxhash::FxBuildHasher>;
 
 fn parse(input: &[String]) -> Vec<(HashSet<usize>, HashSet<usize>)> {
     let parse_numbers = |s: &str| {
