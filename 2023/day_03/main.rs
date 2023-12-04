@@ -1,30 +1,29 @@
 use std::collections::*;
 
-#[derive(Debug)]
 enum Cell {
     Gear(usize),
     Sym(char),
 }
 
-#[derive(Debug)]
 struct Elem {
     cell: Cell,
     x: usize,
     y: usize,
 }
 
-fn parse_schematic(input: &[String]) -> Vec<Elem> {
-    let mut elems = Vec::new();
+struct Number(usize);
+struct Symbol(char);
+
+fn parse_schematic(input: &[String]) -> (Vec<Vec<(Number, usize)>>, Vec<(Symbol, usize, usize)>) {
+    let mut nums = Vec::new();
+    let mut syms = Vec::new();
     let mx = input[0].as_bytes().len() - 1;
     for (y, line) in input.iter().enumerate() {
-        //let mut vec = Vec::new();
+        let mut lnums = Vec::new();
+
         for (x, ch) in line.bytes().enumerate() {
             if !ch.is_ascii_digit() && ch != b'.' {
-                elems.push(Elem {
-                    cell: Cell::Sym(ch as char),
-                    x,
-                    y,
-                });
+                syms.push((Symbol(ch as char), x, y));
             }
         }
 
@@ -39,72 +38,78 @@ fn parse_schematic(input: &[String]) -> Vec<Elem> {
                 number.push(ch as char);
             } else if !number.is_empty() {
                 let g = number.parse().unwrap();
-                elems.push(Elem {
-                    x: index,
-                    y,
-                    cell: Cell::Gear(g),
-                });
+                lnums.push((Number(g), index));
                 number.clear();
             }
         }
         if !number.is_empty() {
             let g = number.parse().unwrap();
-            elems.push(Elem {
-                x: index,
-                y,
-                cell: Cell::Gear(g),
-            });
+            lnums.push((Number(g), index));
+        }
+
+        nums.push(lnums);
+    }
+    (nums, syms)
+}
+
+fn find((x, y): (usize, usize), numbers: &[Vec<(Number, usize)>]) -> Vec<usize> {
+    let mut vec = Vec::with_capacity(4);
+    for y in [
+        y.saturating_sub(1),
+        y,
+        std::cmp::min(numbers.len() - 1, y + 1),
+    ] {
+        for (num, _x) in &numbers[y] {
+            let len = num.0.to_string().len();
+            let x0 = *_x;
+            let x1 = *_x + (len - 1);
+
+            if (x0..=x1).find(|nx| nx.abs_diff(x) <= 1).is_some() {
+                vec.push(num.0);
+            }
         }
     }
-    elems
+    vec
 }
 
 fn task_one(input: &[String]) -> usize {
-    let elems = parse_schematic(input);
-    let mut sum = 0;
-    for elem in elems.iter() {
-        if matches!(elem.cell, Cell::Sym(a)) {
-            let num = find(elem, &elems);
-            sum += num.into_iter().sum::<usize>();
-        }
-    }
+    let (numbers, symbols) = parse_schematic(input);
 
-    sum
-}
-
-fn find(elem: &Elem, elems: &[Elem]) -> Vec<usize> {
-    let mut sum = Vec::new();
-    for e in elems {
-        if let Cell::Gear(g) = e.cell {
-            let len = g.to_string().len();
-            let x0 = e.x;
-            let x1 = e.x + (len - 1);
-
-            if (x0..=x1)
-                .find(|x| e.y.abs_diff(elem.y) <= 1 && x.abs_diff(elem.x) <= 1)
-                .is_some()
-            {
-                sum.push(g)
-            }
-        }
-    }
-    sum
+    symbols
+        .into_iter()
+        .flat_map(|(_sym, x, y)| find((x, y), &numbers).into_iter())
+        .sum()
 }
 
 fn task_two(input: &[String]) -> usize {
-    let elems = parse_schematic(input);
+    let (numbers, symbols) = parse_schematic(input);
 
-    let mut sum = 0;
-    for elem in elems.iter() {
-        if let Cell::Sym(a) = elem.cell {
-            let num = find(elem, &elems);
-            if a == '*' && num.len() == 2 {
-                sum += num[0] * num[1];
+    symbols
+        .into_iter()
+        .filter_map(|(sym, x, y)| {
+            if sym.0 == '*' {
+                let nums = find((x, y), &numbers);
+                if nums.len() == 2 {
+                    Some(nums[0] * nums[1])
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .sum()
+
+    /*let mut sum = 0;
+    for (sym, x, y) in symbols {
+        if sym.0 == '*' {
+            let nums = find((x, y), &numbers);
+            if nums.len() == 2 {
+                sum += nums[0] * nums[1];
             }
         }
     }
-
-    sum
+    sum*/
 }
 
 fn main() {
