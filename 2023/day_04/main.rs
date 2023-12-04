@@ -22,7 +22,7 @@ fn calc_score((winning, mine): (HashSet<usize>, HashSet<usize>)) -> usize {
     if len == 0 {
         0
     } else {
-        2_usize.pow(len.saturating_sub(1))
+        2_usize.pow(len - 1)
     }
 }
 
@@ -31,11 +31,11 @@ fn task_one(input: &[String]) -> usize {
 }
 
 fn task_two(input: &[String]) -> usize {
-    let p = parse(input);
+    let games = parse(input);
 
-    let mut vec = vec![1; p.len()];
+    let mut vec = vec![1; games.len()];
 
-    for (id, (winning, mine)) in p.into_iter().enumerate() {
+    for (id, (winning, mine)) in games.into_iter().enumerate() {
         let id = id + 1;
         let num_matches = winning.intersection(&mine).count();
         for i in id..id + num_matches {
