@@ -1,27 +1,21 @@
 use itertools::Itertools;
-use std::collections::*;
 
-#[derive(Debug)]
 struct Map {
     dst: usize,
     src: usize,
     range: usize,
 }
+struct Seed(usize);
+struct Function(Vec<Map>);
 
-#[derive(Debug)]
-struct Data {
-    seeds: Vec<usize>,
-    maps: Vec<Vec<Map>>,
-}
-
-fn parse(input: &[String]) -> Data {
-    let mut maps = Vec::new();
-    let mut v = Vec::new();
+fn parse(input: &[String]) -> (Vec<Seed>, Vec<Function>) {
+    let mut functions = Vec::new();
+    let mut seeds = Vec::new();
     for inp in input.split(|line| line.is_empty()) {
         if inp[0].starts_with("seeds") {
-            v = inp[0][6..]
+            seeds = inp[0][6..]
                 .split_ascii_whitespace()
-                .map(|n| n.parse::<usize>().unwrap())
+                .map(|n| Seed(n.parse::<usize>().unwrap()))
                 .collect::<Vec<_>>();
         } else {
             let next = inp
@@ -38,71 +32,74 @@ fn parse(input: &[String]) -> Data {
                     Map { dst, src, range }
                 })
                 .collect::<Vec<_>>();
-            maps.push(next);
+            functions.push(Function(next));
         }
     }
-    Data { seeds: v, maps }
+    (seeds, functions)
+}
+
+fn apply_function(seed: Seed, func: &Function) -> Seed {
+    func.0
+        .iter()
+        .find_map(|map| {
+            (map.src <= seed.0 && seed.0 < map.src + map.range)
+                .then(|| Seed(seed.0 - map.src + map.dst))
+        })
+        .unwrap_or(seed)
+}
+
+fn apply_range(r: Vec<(usize, usize)>, func: &Function) -> Vec<(usize, usize)> {
+    let mut res = Vec::new();
+    let mut r = r;
+
+    for Map { dst, src, range } in &func.0 {
+        let end = *src + *range;
+
+        let mut temp = Vec::new();
+
+        for (st, ed) in r {
+            let before = (st, ed.min(*src));
+            let inter = (st.max(*src), end.min(ed));
+            let after = (end.max(st), ed);
+            if before.1 > before.0 {
+                temp.push(before);
+            }
+            if inter.1 > inter.0 {
+                res.push((inter.0 - *src + *dst, inter.1 - *src + *dst));
+            }
+            if after.1 > after.0 {
+                temp.push(after);
+            }
+        }
+
+        r = temp;
+    }
+    res.extend(r);
+    res
 }
 
 fn task_one(input: &[String]) -> usize {
-    let data = parse(input);
-    let mut nums = data.seeds.clone();
-
-    for map in data.maps {
-        for val in nums.iter_mut() {
-            if let Some(next) = map.iter().find(|l| (l.src..l.src + l.range).contains(&val)) {
-                let diff = *val - next.src;
-                let nv = next.dst + diff;
-                *val = nv;
-            }
-        }
-    }
-    nums.into_iter().min().unwrap()
-}
-
-fn thread_exec<T, U, I, F, R>(iter: I, f: F) -> R
-where
-    F: Fn(T) -> U + Send + Clone + Copy,
-    R: FromIterator<U>,
-    U: Send,
-    T: Send,
-    I: IntoIterator<Item = T>,
-{
-    // Collecting the JoinHandles are very important to actually spawn the threads.
-    // Removing the collect results in sequential execution
-    #[allow(clippy::needless_collect)]
-    std::thread::scope(|s| {
-        iter.into_iter()
-            .map(|v| s.spawn(move || f(v)))
-            .collect::<Vec<_>>()
-            .into_iter()
-            .map(|h| h.join().unwrap())
-            .collect::<R>()
-    })
+    let (seeds, fs) = parse(input);
+    seeds
+        .into_iter()
+        .map(|seed| fs.iter().fold(seed, apply_function).0)
+        .min()
+        .unwrap()
 }
 
 fn task_two(input: &[String]) -> usize {
-    let data = parse(input);
-    let mut min = usize::MAX;
-
-    let mut calc = |(start, range): (usize, usize)| {
-        let mut min = usize::MAX;
-        for num in (start..start + range) {
-            let mut num = num;
-            for map in data.maps.iter() {
-                if let Some(next) = map.iter().find(|l| (l.src..l.src + l.range).contains(&num)) {
-                    let diff = num - next.src;
-                    let nv = next.dst + diff;
-                    num = nv;
-                }
-            }
-            min = min.min(num);
-        }
-        dbg!(min)
-    };
-    let res: Vec<usize> = thread_exec(data.seeds.iter().copied().tuples(), calc);
-
-    res.into_iter().min().unwrap()
+    let (seeds, fs) = parse(input);
+    seeds
+        .into_iter()
+        .tuples()
+        .flat_map(|(start, range)| {
+            fs.iter()
+                .fold(vec![(start.0, start.0 + range.0)], apply_range)
+                .into_iter()
+        })
+        .map(|(st, _)| st)
+        .min()
+        .unwrap()
 }
 
 fn main() {
