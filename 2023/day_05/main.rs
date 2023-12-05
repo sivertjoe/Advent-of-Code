@@ -9,32 +9,32 @@ struct Seed(usize);
 struct Function(Vec<Map>);
 
 fn parse(input: &[String]) -> (Vec<Seed>, Vec<Function>) {
-    let mut functions = Vec::new();
-    let mut seeds = Vec::new();
-    for inp in input.split(|line| line.is_empty()) {
-        if inp[0].starts_with("seeds") {
-            seeds = inp[0][6..]
-                .split_ascii_whitespace()
-                .map(|n| Seed(n.parse::<usize>().unwrap()))
-                .collect::<Vec<_>>();
-        } else {
-            let next = inp
-                .iter()
-                .skip(1)
-                .map(|line| {
-                    let mut line = line
-                        .split_ascii_whitespace()
-                        .map(|w| w.parse::<usize>().unwrap());
-                    let dst = line.next().unwrap();
-                    let src = line.next().unwrap();
-                    let range = line.next().unwrap();
+    let seeds = input[0][6..]
+        .split_ascii_whitespace()
+        .map(|n| Seed(n.parse::<usize>().unwrap()))
+        .collect::<Vec<_>>();
 
-                    Map { dst, src, range }
-                })
-                .collect::<Vec<_>>();
-            functions.push(Function(next));
-        }
-    }
+    let functions = input[1..]
+        .split(|line| line.is_empty())
+        .map(|lines| {
+            Function(
+                lines
+                    .iter()
+                    .skip(1) // `skip {thing}-to-{thing} map:` text
+                    .map(|line| {
+                        let mut line = line
+                            .split_ascii_whitespace()
+                            .map(|w| w.parse::<usize>().unwrap());
+                        let dst = line.next().unwrap();
+                        let src = line.next().unwrap();
+                        let range = line.next().unwrap();
+
+                        Map { dst, src, range }
+                    })
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .collect::<Vec<_>>();
     (seeds, functions)
 }
 
