@@ -1,68 +1,55 @@
-struct Data {
-    time: Vec<usize>,
-    dist: Vec<usize>,
+fn parse(input: &[String]) -> (Vec<usize>, Vec<usize>) {
+    let parse = |s: &str| {
+        s.split_ascii_whitespace()
+            .map(|w| w.parse::<usize>().unwrap())
+            .collect::<Vec<_>>()
+    };
+    let time = parse(&input[0][5..]);
+    let dist = parse(&input[1][9..]);
+
+    (time, dist)
 }
 
-fn parse(input: &[String]) -> Data {
-    let time = input[0][5..]
-        .split_ascii_whitespace()
-        .map(|w| w.parse::<usize>().unwrap())
-        .collect::<Vec<_>>();
-    let dist = input[1][9..]
-        .split_ascii_whitespace()
-        .map(|w| w.parse::<usize>().unwrap())
-        .collect::<Vec<_>>();
+fn get_number_of_winning_ways((time, dist): (usize, usize)) -> usize {
+    let time = time as f64;
+    let dist = dist as f64;
 
-    Data { time, dist }
+    let discriminant = (time * time - (4.0 * (-dist) * -1.0)).sqrt();
+
+    let lower = (-time + discriminant) / -2.0;
+    let higher = (-time - discriminant) / -2.0;
+
+    if lower.fract() == 0.0 {
+        (higher - lower) as usize - 1
+    } else {
+        higher.floor() as usize - lower.ceil() as usize + 1
+    }
 }
 
 fn task_one(input: &[String]) -> usize {
-    let data = parse(input);
+    let (time, dist) = parse(input);
 
-    let mut sum = 1;
-    for (time, dist) in data.time.into_iter().zip(data.dist.into_iter()) {
-        let mut vec = Vec::new();
-
-        for i in 0..time {
-            vec.push(i * (time - i));
-        }
-
-        let ways = vec.into_iter().filter(|n| *n > dist).count();
-
-        if ways > 0 {
-            sum *= ways;
-        }
-    }
-    sum
+    time.into_iter()
+        .zip(dist)
+        .map(get_number_of_winning_ways)
+        .product()
 }
 
 fn task_two(input: &[String]) -> usize {
-    let data = parse(input);
+    let (time, dist) = parse(input);
 
     let parse = |vec: Vec<usize>| {
-        let mut ch = String::new();
-        for n in vec {
-            ch.push_str(&n.to_string());
-        }
-        ch.parse::<usize>().unwrap()
+        vec.into_iter()
+            .map(|num| num.to_string())
+            .collect::<String>()
+            .parse()
+            .unwrap()
     };
 
-    let time = parse(data.time);
-    let dist = parse(data.dist);
+    let time = parse(time);
+    let dist = parse(dist);
 
-    let mut sum = 1;
-    let mut vec = Vec::new();
-
-    for i in 0..time {
-        vec.push(i * (time - i));
-    }
-
-    let ways = vec.into_iter().filter(|n| *n > dist).count();
-
-    if ways > 0 {
-        sum *= ways;
-    }
-    sum
+    get_number_of_winning_ways((time, dist))
 }
 
 fn main() {
