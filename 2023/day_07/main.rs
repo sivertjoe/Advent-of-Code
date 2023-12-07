@@ -1,210 +1,248 @@
 use std::collections::*;
 
-#[derive(Debug, Clone)]
-struct Hand {
-    cards: Vec<char>,
+trait Ordering {
+    fn order(c1: &[u8], c2: &[u8]) -> std::cmp::Ordering;
 }
 
-#[derive(Debug)]
-enum HandTypes {
-    FiveOfAKind = 6,
+struct Hand<O> {
+    cards: Vec<u8>,
+    id: usize,
+    typ: HandType,
+    _phant: std::marker::PhantomData<O>,
+}
 
+impl<O> PartialEq for Hand<O> {
+    fn eq(&self, other: &Self) -> bool {
+        self.cards == other.cards
+    }
+}
+impl<O> Eq for Hand<O> {}
+
+impl<O> Hand<O> {
+    fn new(cards: Vec<u8>, id: usize) -> Self {
+        Self {
+            typ: HandType::new(&cards),
+            id,
+            cards,
+            _phant: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<O: Ordering> Ord for Hand<O> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let v1 = self.typ as u8;
+        let v2 = other.typ as u8;
+
+        v1.cmp(&v2)
+            .then_with(|| O::order(&self.cards, &other.cards))
+    }
+}
+impl<O: Ordering> PartialOrd for Hand<O> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+#[derive(Clone, Copy, PartialOrd, PartialEq)]
+enum HandType {
+    FiveOfAKind = 6,
     FourOfAKind = 5,
     FullHouse = 4,
-
     ThreeOfAKind = 3,
     TwoPair = 2,
-
     OnePair = 1,
     HighCard = 0,
 }
 
-impl HandTypes {
-    fn new(hand: &Hand) -> Self {
-        let mut map: HashMap<char, usize> = HashMap::new();
-        for ch in hand.cards.iter().copied() {
-            *map.entry(ch).or_default() += 1;
-        }
+fn get_nums(cards: &[u8]) -> (u8, u8, u8) {
+    // Datalayout
+    // upper = char
+    // lower = count
+    let mut idx = 0;
+    let mut arr: [u16; 5] = [0; 5];
 
-        match map.len() {
+    for card in cards {
+        if let Some(entry) = arr.iter_mut().find(|entry| entry.to_be_bytes()[0] == *card) {
+            let [upper, lower] = entry.to_be_bytes();
+            *entry = u16::from_be_bytes([upper, lower + 1]);
+        } else {
+            arr[idx] = u16::from_be_bytes([*card, 1]);
+            idx += 1;
+        }
+    }
+
+    let mut smallest = std::u8::MAX;
+    let mut second_smallest = std::u8::MAX;
+
+    for entry in arr {
+        let [ch, num] = entry.to_be_bytes();
+        if ch == 0 {
+            continue;
+        }
+        if num < smallest {
+            second_smallest = smallest;
+            smallest = num;
+        } else if num < second_smallest {
+            second_smallest = num;
+        }
+    }
+
+    (idx as u8, smallest, second_smallest)
+}
+
+impl HandType {
+    fn new(cards: &[u8]) -> Self {
+        let (len, e1, e2) = get_nums(cards);
+
+        match len {
             1 => Self::FiveOfAKind,
             2 => {
-                let mut vec = map.values().collect::<Vec<_>>();
-                vec.sort();
-                if *vec[0] == 1 {
+                if e1 == 1 {
                     Self::FourOfAKind
                 } else {
                     Self::FullHouse
                 }
             }
             3 => {
-
-                let mut vec = map.values().collect::<Vec<_>>();
-                vec.sort();
-
-                if *vec[0] == 1 && *vec[1] == 1 {
+                if e1 == 1 && e2 == 1 {
                     Self::ThreeOfAKind
                 } else {
                     Self::TwoPair
                 }
             }
             4 => Self::OnePair,
-
             5 => Self::HighCard,
             _ => unreachable!(),
         }
     }
 }
 
-fn compare((h1, _): &(Hand, usize), (h2, _): &(Hand, usize)) -> std::cmp::Ordering {
-    let mut map: HashMap<char, usize> = HashMap::new();
+fn parse<O>(input: &[String]) -> (HashMap<usize, usize>, Vec<Hand<O>>) {
+    let mut vec = Vec::with_capacity(1000);
+    let mut map = HashMap::with_capacity(1000);
 
-    for (i, ch) in [
-        'A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2',
-    ]
-    .into_iter()
-    .rev()
-    .enumerate()
-    {
-        map.insert(ch, i);
+    for (i, line) in input.iter().enumerate() {
+        let (hand, bid) = line.split_once(' ').unwrap();
+        let cards = hand.bytes().collect::<Vec<u8>>();
+        assert!(cards.len() == 5);
+        let bid = bid.parse::<usize>().unwrap();
+
+        vec.push(Hand::new(cards, i));
+        map.insert(i, bid);
     }
+    (map, vec)
+}
 
-    let v1 = HandTypes::new(h1) as u8;
-    let v2 = HandTypes::new(h2) as u8;
+const fn task_one_compare() -> [u8; 128] {
+    let mut vec = [0; 128];
+    vec[b'2' as usize] = 0;
+    vec[b'3' as usize] = 1;
+    vec[b'4' as usize] = 2;
+    vec[b'5' as usize] = 3;
+    vec[b'6' as usize] = 4;
+    vec[b'7' as usize] = 5;
+    vec[b'8' as usize] = 6;
+    vec[b'9' as usize] = 7;
+    vec[b'T' as usize] = 8;
+    vec[b'J' as usize] = 9;
+    vec[b'Q' as usize] = 10;
+    vec[b'K' as usize] = 11;
+    vec[b'A' as usize] = 12;
 
-    if v1 > v2 {
-        std::cmp::Ordering::Greater
-    } else if v1 < v2 {
-        std::cmp::Ordering::Less
-    } else {
-        for (ch1, ch2) in h1.cards.iter().zip(&h2.cards) {
-            let e1 = map[ch1];
-            let e2 = map[ch2];
-
-            if e1 > e2 {
-                return std::cmp::Ordering::Greater;
-            } else if e1 < e2 {
-                return std::cmp::Ordering::Less;
-            }
-        }
-        unreachable!()
+    vec
+}
+struct Ord1;
+impl Ordering for Ord1 {
+    fn order(c1: &[u8], c2: &[u8]) -> std::cmp::Ordering {
+        const ORD: [u8; 128] = task_one_compare();
+        c1.iter()
+            .map(|c| ORD[*c as usize])
+            .cmp(c2.iter().map(|c| ORD[*c as usize]))
     }
 }
 
-fn parse(input: &[String]) -> Vec<(Hand, usize)> {
-    input
-        .iter()
-        .map(|line| {
-            let (hand, bid) = line.split_once(' ').unwrap();
-            let cards = hand.chars().collect::<Vec<char>>();
-            assert!(cards.len() == 5);
-            let bid = bid.parse::<usize>().unwrap();
-            (Hand { cards }, bid)
-        })
-        .collect()
-}
-
-fn task_one(input: &[String]) -> usize {
-    let mut data = parse(input);
-
-    data.sort_by(compare);
-    data.into_iter()
-        .enumerate()
-        .map(|(i, (_hand, bid))| {
-            bid * (i + 1)
-        })
-        .sum()
-}
-
-fn compare3(h1: &Hand, h2: &Hand) -> std::cmp::Ordering {
-    let mut map: HashMap<char, usize> = HashMap::new();
-    for (i, ch) in [
-        'A', 'K', 'Q', 'T', '9', '8', '7', '6', '5', '4', '3', '2', 'J',
-    ]
-    .into_iter()
-    .rev()
-    .enumerate()
-    {
-        map.insert(ch, i);
-    }
-
-    for (ch1, ch2) in h1.cards.iter().zip(&h2.cards) {
-        let e1 = map[ch1];
-        let e2 = map[ch2];
-
-        if e1 > e2 {
-            return std::cmp::Ordering::Greater;
-        } else if e1 < e2 {
-            return std::cmp::Ordering::Less;
-        }
-    }
-    std::cmp::Ordering::Equal
-}
-
-fn compare2((h1, _h1, _): &(Hand, Hand, usize), (h2, _h2, _): &(Hand, Hand, usize)) -> std::cmp::Ordering {
-    let mut map: HashMap<char, usize> = HashMap::new();
-
-    for (i, ch) in [
-        'A', 'K', 'Q', 'T', '9', '8', '7', '6', '5', '4', '3', '2', 'J',
-    ]
-    .into_iter()
-    .rev()
-    .enumerate()
-    {
-        map.insert(ch, i);
-    }
-
-    let v1 = HandTypes::new(h1) as u8;
-    let v2 = HandTypes::new(h2) as u8;
-
-    if v1 > v2 {
-        std::cmp::Ordering::Greater
-    } else if v1 < v2 {
-        std::cmp::Ordering::Less
-    } else {
-        compare3(_h1, _h2)
-    }
-}
-
-fn _get_best_hand(vec: &Vec<char>, idx: usize, acc: &mut Vec<Hand>) {
-    if idx >= vec.len() {
+fn _get_best_hand(vec: &mut [u8], idx: usize, best: &mut HandType) {
+    if matches!(best, HandType::FiveOfAKind) {
         return;
     }
     for i in idx..vec.len() {
-        if vec[i] == 'J' {
-            for  ch in [
-                'A', 'K', 'Q', 'T', '9', '8', '7', '6', '5', '4', '3', '2', 'J',
+        let temp = vec[i];
+        if temp == b'J' {
+            for ch in [
+                b'A', b'K', b'Q', b'T', b'9', b'8', b'7', b'6', b'5', b'4', b'3', b'2', b'J',
             ] {
-                let mut cc = vec.clone();
-                cc[i] = ch;
-                acc.push(Hand{ cards: cc.clone() });
-                _get_best_hand(&cc, idx + 1, acc);
-            }
+                vec[i] = ch;
 
+                let new = HandType::new(vec);
+                if new > *best {
+                    *best = new;
+                }
+
+                _get_best_hand(vec, idx + 1, best);
+            }
+            vec[i] = temp;
         }
     }
 }
 
-fn get_best_hand(hand: Hand) -> Hand {
-    let mut acc = Vec::new();
-    acc.push(hand.clone());
-    _get_best_hand(&hand.cards, 0, &mut acc);
+fn get_best_hand<O>(hand: &Hand<O>) -> HandType {
+    let mut cards = hand.cards.clone();
+    let mut best = hand.typ;
+    _get_best_hand(&mut cards, 0, &mut best);
+    best
+}
 
-    let mut acc: Vec<_> = acc.into_iter().map(|h| (h, hand.clone(), 0)).collect();
+const fn task_two_compare() -> [u8; 128] {
+    let mut vec = [0; 128];
+    vec[b'J' as usize] = 0;
+    vec[b'2' as usize] = 1;
+    vec[b'3' as usize] = 2;
+    vec[b'4' as usize] = 3;
+    vec[b'5' as usize] = 4;
+    vec[b'6' as usize] = 5;
+    vec[b'7' as usize] = 6;
+    vec[b'8' as usize] = 7;
+    vec[b'9' as usize] = 8;
+    vec[b'T' as usize] = 9;
+    vec[b'Q' as usize] = 10;
+    vec[b'K' as usize] = 11;
+    vec[b'A' as usize] = 12;
 
-    acc.sort_by(compare2);
-    acc.last().unwrap().0.clone()
+    vec
+}
+
+struct Ord2;
+impl Ordering for Ord2 {
+    fn order(c1: &[u8], c2: &[u8]) -> std::cmp::Ordering {
+        const ORD: [u8; 128] = task_two_compare();
+        c1.iter()
+            .map(|c| ORD[*c as usize])
+            .cmp(c2.iter().map(|c| ORD[*c as usize]))
+    }
+}
+
+fn task_one(input: &[String]) -> usize {
+    let (bids, mut hands) = parse::<Ord1>(input);
+    hands.sort();
+    hands
+        .into_iter()
+        .enumerate()
+        .map(|(i, hand)| (i + 1) * bids[&hand.id])
+        .sum()
 }
 
 fn task_two(input: &[String]) -> usize {
-    let mut data: Vec<_> = parse(input).into_iter().map(|(hand, bid)| (get_best_hand(hand.clone()), hand, bid )).collect();
-
-    data.sort_by(compare2);
-    data.into_iter()
+    let (bids, mut hands) = parse::<Ord2>(input);
+    for hand in &mut hands {
+        let typ = get_best_hand(hand);
+        hand.typ = typ;
+    }
+    hands.sort();
+    hands
+        .into_iter()
         .enumerate()
-        .map(|(i, (_hand, __hand, bid))| {
-            bid * (i + 1)
-        })
+        .map(|(i, hand)| (i + 1) * bids[&hand.id])
         .sum()
 }
 
