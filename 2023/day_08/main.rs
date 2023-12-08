@@ -13,47 +13,21 @@ fn parse(input: &[String]) -> (String, HashMap<String, [String; 2]>) {
     (path, map)
 }
 
-fn task_one(input: &[String]) -> usize {
-    let (p, map) = parse(input);
-
-    let mut count = 0;
-
-    let mut current = "AAA".to_string();
-
-    loop {
-        for b in p.bytes() {
-            count += 1;
-            let idx = if b == b'L' { 0 } else { 1 };
-            let next = map.get(&current).unwrap()[idx].clone();
-            if next == "ZZZ" {
-                return count;
-            }
-
-            current = next;
-        }
-    }
-
-    0
-}
-
-fn calc_steps(p: &str, start: String, map: &HashMap<String, [String; 2]>) -> usize {
+fn calc_steps<'a>(p: &str, start: &'a String, map: &'a HashMap<String, [String; 2]>) -> usize {
     let mut count = 0;
 
     let mut curr = start;
-    loop {
-        for b in p.bytes() {
-            count += 1;
-
-            let idx = if b == b'L' { 0 } else { 1 };
-            let next = map.get(&curr).unwrap()[idx].clone();
-
-            if next.ends_with('Z') {
-                return count;
-            }
-
-            curr = next;
+    for idx in p.bytes().map(|b| if b == b'L' { 0 } else { 1 }).cycle() {
+        count += 1;
+        let next = &map.get(curr).unwrap()[idx];
+        if next.ends_with('Z') {
+            return count;
         }
+
+        curr = next;
     }
+
+    unreachable!()
 }
 
 fn gcd(a: usize, b: usize) -> usize {
@@ -65,28 +39,21 @@ fn gcd(a: usize, b: usize) -> usize {
 }
 
 fn lcm(a: usize, b: usize) -> usize {
-    if a == 0 || b == 0 {
-        0
-    } else {
-        (a * b) / gcd(a, b)
-    }
+    (a * b) / gcd(a, b)
+}
+
+fn task_one(input: &[String]) -> usize {
+    let (p, map) = parse(input);
+    calc_steps(&p, &"AAA".to_string(), &map)
 }
 
 fn task_two(input: &[String]) -> usize {
     let (p, map) = parse(input);
 
-    let mut count = 0;
-
-    let mut current = map
-        .keys()
-        .into_iter()
-        .filter_map(|k| k.ends_with('A').then_some(k.clone()))
-        .collect::<Vec<String>>();
-
-    current
-        .into_iter()
-        .map(|start| calc_steps(&p, start, &map))
-        .reduce(|acc, x| lcm(acc, x))
+    map.keys()
+        .filter(|k| k.ends_with('A'))
+        .map(|k| calc_steps(&p, k, &map))
+        .reduce(lcm)
         .unwrap()
 }
 
