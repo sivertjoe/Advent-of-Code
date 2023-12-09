@@ -1,66 +1,36 @@
-fn parse(input: &[String]) -> Vec<Vec<isize>> {
-    input
-        .iter()
-        .map(|line| {
-            line.split_ascii_whitespace()
-                .map(|tok| tok.parse::<isize>().unwrap())
-                .collect()
-        })
-        .collect()
+fn parse(input: &[String]) -> impl Iterator<Item = Vec<isize>> + '_ {
+    input.iter().map(|line| {
+        line.split_ascii_whitespace()
+            .map(|tok| tok.parse::<isize>().unwrap())
+            .collect()
+    })
 }
 
-fn extrapolate(row: Vec<isize>) -> isize {
-    let mut rows = Vec::new();
-    rows.push(row);
-
-    while !rows.last().unwrap().iter().all(|v| *v == 0) {
-        let last = rows.last().unwrap();
-        let new = last
-            .windows(2)
-            .map(|arr| arr[1] - arr[0])
-            .collect::<Vec<_>>();
-        rows.push(new);
-    }
-    rows.last_mut().unwrap().push(0);
-
-    for i in (0..rows.len()).rev().skip(1) {
-        let left = rows[i][rows[i].len() - 1];
-        let below = rows[i + 1].last().copied().unwrap();
-        *rows[i].last_mut().unwrap() = left + below;
+fn extrapolate(row: &[isize]) -> isize {
+    if row.iter().all(|x| *x == 0) {
+        return 0;
     }
 
-    rows[0].last().copied().unwrap()
-}
+    let new = row
+        .windows(2)
+        .map(|arr| arr[1] - arr[0])
+        .collect::<Vec<_>>();
 
-fn extrapolate2(row: Vec<isize>) -> isize {
-    let mut rows = Vec::new();
-    rows.push(row);
-
-    while !rows.last().unwrap().iter().all(|v| *v == 0) {
-        let last = rows.last().unwrap();
-        let new = last
-            .windows(2)
-            .map(|arr| arr[1] - arr[0])
-            .collect::<Vec<_>>();
-        rows.push(new);
-    }
-    rows.last_mut().unwrap().push(0);
-
-    for i in (0..rows.len()).rev().skip(1) {
-        let right = rows[i][0];
-        let below = rows[i + 1][0];
-        *rows[i].first_mut().unwrap() = right - below;
-    }
-
-    rows[0].first().copied().unwrap()
+    let next = extrapolate(&new);
+    return next + row.last().unwrap();
 }
 
 fn task_one(input: &[String]) -> isize {
-    parse(input).into_iter().map(extrapolate).sum()
+    parse(input).map(|row| extrapolate(&row)).sum()
 }
 
 fn task_two(input: &[String]) -> isize {
-    parse(input).into_iter().map(extrapolate2).sum()
+    parse(input)
+        .map(|mut row| {
+            row.reverse();
+            extrapolate(&row)
+        })
+        .sum()
 }
 
 fn main() {
