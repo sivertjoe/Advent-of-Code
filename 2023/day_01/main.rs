@@ -2,7 +2,7 @@ fn sum_calibration_values(input: &[String], part_two: bool) -> usize {
     input
         .iter()
         .map(|line| {
-            let mut nums = get_numbers(&line, part_two);
+            let mut nums = get_numbers(line, part_two);
             let min = nums.next().unwrap();
             let max = nums.last().unwrap_or(min);
             min * 10 + max
@@ -11,7 +11,7 @@ fn sum_calibration_values(input: &[String], part_two: bool) -> usize {
 }
 
 fn get_numbers(line: &str, part_two: bool) -> impl Iterator<Item = usize> + '_ {
-    const NUMS: [&'static str; 9] = [
+    const NUMS: [&str; 9] = [
         "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
     ];
 
