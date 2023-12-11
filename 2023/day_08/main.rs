@@ -1,8 +1,8 @@
-use std::collections::*;
+type HashMap<K, V> = std::collections::HashMap<K, V, fxhash::FxBuildHasher>;
 
 fn parse(input: &[String]) -> (String, HashMap<String, [String; 2]>) {
     let path = input[0].to_owned();
-    let mut map = HashMap::new();
+    let mut map = HashMap::default();
     for line in input[2..].iter() {
         let line = line.replace(['(', ')'], "");
         let (key, rest) = line.split_once(" = ").unwrap();
@@ -13,7 +13,7 @@ fn parse(input: &[String]) -> (String, HashMap<String, [String; 2]>) {
     (path, map)
 }
 
-fn calc_steps<'a>(p: &str, start: &'a String, map: &'a HashMap<String, [String; 2]>) -> usize {
+fn calc_steps(p: &str, start: &String, map: &HashMap<String, [String; 2]>) -> usize {
     let mut count = 0;
 
     let mut curr = start;
