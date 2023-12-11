@@ -69,92 +69,55 @@ fn get_start_character(vec: &[Vec<u8>], pos: (usize, usize)) -> u8 {
     unreachable!()
 }
 
-fn neighbors(vec: &[Vec<u8>], pos: (usize, usize)) -> Vec<(usize, usize)> {
+fn neighbors(vec: &[Vec<u8>], pos: (usize, usize)) -> ((usize, usize), (usize, usize)) {
     let me = vec[pos.1][pos.0];
 
-    let my = vec.len() as isize;
-    let mx = vec[0].len() as isize;
-    let x = pos.0 as isize;
-    let y = pos.1 as isize;
-
-    let bounds = |tx, ty| tx >= 0 && tx < mx && ty >= 0 && ty < my;
-
-    let mut ns = Vec::new();
     match me {
-        b'|' => {
-            if bounds(x, y - 1) && [b'|', b'7', b'F'].contains(&vec[pos.1 - 1][pos.0]) {
-                ns.push((pos.0, pos.1 - 1));
-            }
-            if bounds(x, y + 1) && [b'|', b'L', b'J'].contains(&vec[pos.1 + 1][pos.0]) {
-                ns.push((pos.0, pos.1 + 1));
-            }
-        }
-        b'-' => {
-            if bounds(x - 1, y) && [b'-', b'L', b'F'].contains(&vec[pos.1][pos.0 - 1]) {
-                ns.push((pos.0 - 1, pos.1));
-            }
-            if bounds(x + 1, y) && [b'-', b'J', b'7'].contains(&vec[pos.1][pos.0 + 1]) {
-                ns.push((pos.0 + 1, pos.1));
-            }
-        }
-        b'L' => {
-            if bounds(x, y - 1) && [b'|', b'7', b'F'].contains(&vec[pos.1 - 1][pos.0]) {
-                ns.push((pos.0, pos.1 - 1));
-            }
-            if bounds(x + 1, y) && [b'-', b'J', b'7'].contains(&vec[pos.1][pos.0 + 1]) {
-                ns.push((pos.0 + 1, pos.1));
-            }
-        }
-        b'J' => {
-            if bounds(x, y - 1) && [b'|', b'7', b'F'].contains(&vec[pos.1 - 1][pos.0]) {
-                ns.push((pos.0, pos.1 - 1));
-            }
-            if bounds(x - 1, y) && [b'-', b'L', b'F'].contains(&vec[pos.1][pos.0 - 1]) {
-                ns.push((pos.0 - 1, pos.1));
-            }
-        }
-        b'7' => {
-            if bounds(x - 1, y) && [b'-', b'F', b'L'].contains(&vec[pos.1][pos.0 - 1]) {
-                ns.push((pos.0 - 1, pos.1));
-            }
-            if bounds(x, y + 1) && [b'|', b'J', b'L'].contains(&vec[pos.1 + 1][pos.0]) {
-                ns.push((pos.0, pos.1 + 1));
-            }
-        }
-        b'F' => {
-            if bounds(x, y + 1) && [b'|', b'J', b'L'].contains(&vec[pos.1 + 1][pos.0]) {
-                ns.push((pos.0, pos.1 + 1));
-            }
-            if bounds(x + 1, y) && [b'-', b'J', b'7'].contains(&vec[pos.1][pos.0 + 1]) {
-                ns.push((pos.0 + 1, pos.1));
-            }
-        }
+        b'|' => ((pos.0, pos.1 - 1), (pos.0, pos.1 + 1)),
+        b'-' => ((pos.0 - 1, pos.1), (pos.0 + 1, pos.1)),
+        b'L' => ((pos.0, pos.1 - 1), (pos.0 + 1, pos.1)),
+        b'J' => ((pos.0, pos.1 - 1), (pos.0 - 1, pos.1)),
+        b'7' => ((pos.0 - 1, pos.1), (pos.0, pos.1 + 1)),
+        b'F' => ((pos.0, pos.1 + 1), (pos.0 + 1, pos.1)),
         _ => unreachable!(),
-    };
-    ns
+    }
 }
 
 fn get_map(vec: &[Vec<u8>], start: (usize, usize)) -> HashSet<(usize, usize)> {
-    let mut seen = HashSet::default();
+    let mut seen = std::collections::HashSet::with_capacity_and_hasher(
+        14000,
+        fxhash::FxBuildHasher::default(),
+    );
     let mut stack = vec![start];
-
     while let Some(pos) = stack.pop() {
-        for pair in neighbors(vec, pos) {
-            if seen.insert(pair) {
-                stack.push(pair);
-            }
+        let (n1, n2) = neighbors(vec, pos);
+        if seen.insert(n1) {
+            stack.push(n1);
+        }
+        if seen.insert(n2) {
+            stack.push(n2);
         }
     }
-
     seen
 }
 
-fn is_point_inside(vec: &[Vec<u8>], pos: (usize, usize), map: &HashSet<(usize, usize)>) -> bool {
+fn is_point_inside(
+    vec: &[Vec<u8>],
+    pos: (usize, usize),
+    map: &HashSet<(usize, usize)>,
+    go_left: bool,
+) -> bool {
     let mut count = 0;
     let mut open_down = false;
     let mut open_up = false;
 
-    for x in pos.0 + 1..vec[0].len() {
+    let range = if go_left {
+        0..pos.0
+    } else {
+        pos.0 + 1..vec[0].len()
+    };
+
+    for x in range {
         if !map.contains(&(x, pos.1)) {
             continue;
         }
@@ -180,25 +143,28 @@ fn is_point_inside(vec: &[Vec<u8>], pos: (usize, usize), map: &HashSet<(usize, u
     count % 2 == 1
 }
 
-fn task_one(input: &[String]) -> usize {
+fn get_map_and_vec(input: &[String]) -> (HashSet<(usize, usize)>, Vec<Vec<u8>>) {
     let mut vec = parse(input);
     let start = start(&vec);
     let ch = get_start_character(&vec, start);
     vec[start.1][start.0] = ch;
-    get_map(&vec, start).len() / 2
+    (get_map(&vec, start), vec)
+}
+
+fn task_one(input: &[String]) -> usize {
+    let (map, _) = get_map_and_vec(input);
+    map.len() / 2
 }
 
 fn task_two(input: &[String]) -> usize {
-    let mut vec = parse(input);
-    let start = start(&vec);
-    let ch = get_start_character(&vec, start);
-    vec[start.1][start.0] = ch;
-    let map = get_map(&vec, start);
+    let (map, vec) = get_map_and_vec(input);
 
     let mut count = 0;
     for y in 0..vec.len() {
         for x in 0..vec[0].len() {
-            if !map.contains(&(x, y)) && is_point_inside(&vec, (x, y), &map) {
+            // Small optimization: go to the closest side
+            let go_left = x < vec[0].len() / 2;
+            if !map.contains(&(x, y)) && is_point_inside(&vec, (x, y), &map, go_left) {
                 count += 1;
             }
         }
