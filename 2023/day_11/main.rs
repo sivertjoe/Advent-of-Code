@@ -1,11 +1,8 @@
-use itertools::Itertools;
-
 fn manhatten_distance(n1: (usize, usize), n2: (usize, usize)) -> usize {
     n1.0.abs_diff(n2.0) + n1.1.abs_diff(n2.1)
 }
 
-fn task_one(input: &[String]) -> usize {
-    let mut nodes = Vec::new();
+fn solve<const EXP: usize>(input: &[String]) -> usize {
     let vec = input
         .iter()
         .map(|line| line.as_bytes().to_vec())
@@ -24,78 +21,34 @@ fn task_one(input: &[String]) -> usize {
             y_expansion.push(y);
         }
     }
+
+    let mut nodes = Vec::new();
     for y in 0..vec.len() {
         for x in 0..vec[0].len() {
             if vec[y][x] == b'#' {
                 let x_inc: usize = x_expansion.iter().filter(|_x| x > **_x).count();
                 let y_inc: usize = y_expansion.iter().filter(|_y| y > **_y).count();
 
-                nodes.push((y + y_inc, x + x_inc));
+                nodes.push((y + (y_inc * (EXP - 1)), x + (x_inc * (EXP - 1))));
             }
         }
     }
 
-    nodes
-        .into_iter()
-        .permutations(2)
-        .map(|mut pair| {
-            pair.sort();
-            pair
-        })
-        .unique()
-        .map(|pair| {
-            let dist = manhatten_distance(pair[0], pair[1]);
-            dist
-        })
-        .sum()
+    let mut sum = 0;
+    for i in 0..nodes.len() {
+        for j in i + 1..nodes.len() {
+            sum += manhatten_distance(nodes[i], nodes[j]);
+        }
+    }
+    sum
+}
+
+fn task_one(input: &[String]) -> usize {
+    solve::<2>(input)
 }
 
 fn task_two(input: &[String]) -> usize {
-    let mut nodes = Vec::new();
-    let vec = input
-        .iter()
-        .map(|line| line.as_bytes().to_vec())
-        .collect::<Vec<_>>();
-
-    let mut x_expansion = Vec::new();
-    let mut y_expansion = Vec::new();
-
-    for x in 0..vec[0].len() {
-        if (0..vec.len()).all(|y| vec[y][x] == b'.') {
-            x_expansion.push(x);
-        }
-    }
-    for y in 0..vec.len() {
-        if (0..vec[0].len()).all(|x| vec[y][x] == b'.') {
-            y_expansion.push(y);
-        }
-    }
-
-    const EXP_SIZE: usize = 1_000_000 - 1;
-    for y in 0..vec.len() {
-        for x in 0..vec[0].len() {
-            if vec[y][x] == b'#' {
-                let x_inc: usize = x_expansion.iter().filter(|_x| x > **_x).count();
-                let y_inc: usize = y_expansion.iter().filter(|_y| y > **_y).count();
-
-                nodes.push((y + (y_inc * EXP_SIZE), x + (x_inc * EXP_SIZE)));
-            }
-        }
-    }
-
-    nodes
-        .into_iter()
-        .permutations(2)
-        .map(|mut pair| {
-            pair.sort();
-            pair
-        })
-        .unique()
-        .map(|pair| {
-            let dist = manhatten_distance(pair[0], pair[1]);
-            dist
-        })
-        .sum()
+    solve::<1_000_000>(input)
 }
 
 fn main() {
