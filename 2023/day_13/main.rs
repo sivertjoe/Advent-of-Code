@@ -6,15 +6,13 @@ enum Line {
     Vertical(usize),
 }
 
-
 fn parse(input: &[String]) -> Vec<Pattern> {
     input
         .split(|line| line.is_empty())
-        .into_iter()
         .map(|lines| {
             Pattern(
                 lines
-                    .into_iter()
+                    .iter()
                     .map(|line| line.as_bytes().to_vec())
                     .collect::<Vec<_>>(),
             )
@@ -32,55 +30,37 @@ impl Line {
 }
 
 fn summarize(pat: &Pattern, old: Option<&Line>) -> Option<Line> {
-    let cmp_cols = |i: usize, j: usize| {
-        for y in 0..pat.0.len() {
-            if pat.0[y][i] != pat.0[y][j] {
-                return false;
+    let check_horizontal = |i: usize| {
+        for (i, j) in (0..=i).rev().zip(i + 1..pat.0[0].len()) {
+            for y in 0..pat.0.len() {
+                if pat.0[y][i] != pat.0[y][j] {
+                    return None;
+                }
             }
         }
-        true
+        Some(Line::Vertical(i))
     };
-    let check_horizontal = |i: usize, j: usize| {
-        for (i, j) in (0..=i).rev().zip(j..pat.0[0].len()) {
-            if !cmp_cols(i, j) {
-                return None;
-            }
-        }
-        return Some(Line::Vertical(i));
-    };
-
-    for i in 0..pat.0[0].len() - 1 {
-        if let Some(v) = check_horizontal(i, i + 1) {
-            if old.map_or(true, |old| *old != v) {
-                return Some(v);
-            }
-        }
-    }
-
-    let check_vertical = |i: usize, j: usize| {
-        for (i, j) in (0..=i).rev().zip(j..pat.0.len()) {
+    let check_vertical = |i: usize| {
+        for (i, j) in (0..=i).rev().zip(i + 1..pat.0.len()) {
             if pat.0[i] != pat.0[j] {
                 return None;
             }
         }
-        return Some(Line::Horizontal(i));
+        Some(Line::Horizontal(i))
     };
 
-    for i in 0..pat.0.len() - 1 {
-        if let Some(v) = check_vertical(i, i + 1) {
-            if old.map_or(true, |old| *old != v) {
-                return Some(v);
-            }
-        }
-    }
-
-    None
+    type Map<'a> = (usize, &'a dyn Fn(usize) -> Option<Line>);
+    (0..pat.0[0].len() - 1)
+        .map::<Map, _>(|i| (i, &check_horizontal))
+        .chain((0..pat.0.len() - 1).map::<Map, _>(|i| (i, &check_vertical)))
+        .find_map(|(i, func)| func(i).filter(|new| old.map_or(true, |old| *new != *old)))
 }
 
 fn task_one(input: &[String]) -> usize {
-    let patterns = parse(input);
-
-    patterns.iter().map(|pat| summarize(pat, None).unwrap().sum()).sum()
+    parse(input)
+        .iter()
+        .map(|pat| summarize(pat, None).unwrap().sum())
+        .sum()
 }
 
 fn task_two(input: &[String]) -> usize {
@@ -90,14 +70,14 @@ fn task_two(input: &[String]) -> usize {
 
     patterns
         .into_iter()
-        .map(|mut pat| {
+        .map(|pat| {
             let old = summarize(&pat, None).unwrap();
-
+            let mut pat = pat;
             for y in 0..pat.0.len() {
                 for x in 0..pat.0[0].len() {
                     pat.0[y][x] = opp(pat.0[y][x]);
                     if let Some(v) = summarize(&pat, Some(&old)) {
-                            return v.sum();
+                        return v.sum();
                     }
                     pat.0[y][x] = opp(pat.0[y][x]);
                 }
