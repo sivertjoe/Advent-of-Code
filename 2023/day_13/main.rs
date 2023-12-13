@@ -1,6 +1,11 @@
-use std::collections::*;
-
 struct Pattern(Vec<Vec<u8>>);
+
+#[derive(PartialEq, Eq)]
+enum Line {
+    Horizontal(usize),
+    Vertical(usize),
+}
+
 
 fn parse(input: &[String]) -> Vec<Pattern> {
     input
@@ -17,74 +22,16 @@ fn parse(input: &[String]) -> Vec<Pattern> {
         .collect()
 }
 
-fn _print(p: &Pattern) {
-    for row in &p.0 {
-        for ch in row {
-            print!("{}", *ch as char);
-        }
-        println!();
-    }
-    println!();
-}
-
-fn summarize(pat: &Pattern) -> Option<usize> {
-    let cmp_cols = |i: usize, j: usize| {
-        for y in 0..pat.0.len() {
-            if pat.0[y][i] != pat.0[y][j] {
-                return false;
-            }
-        }
-        true
-    };
-    let check_horizontal = |i: usize, j: usize| {
-        for (i, j) in (0..=i).rev().zip(j..pat.0[0].len()) {
-            if !cmp_cols(i, j) {
-                return None;
-            }
-        }
-        return Some(i);
-    };
-
-    for i in 0..pat.0[0].len() - 1 {
-        if let Some(v) = check_horizontal(i, i + 1) {
-            return Some(v + 1);
-        }
-    }
-
-    let check_vertical = |i: usize, j: usize| {
-        for (i, j) in (0..=i).rev().zip(j..pat.0.len()) {
-            if pat.0[i] != pat.0[j] {
-                return None;
-            }
-        }
-        return Some(i);
-    };
-
-    for i in 0..pat.0.len() - 1 {
-        if let Some(v) = check_vertical(i, i + 1) {
-            return Some(100 * (v + 1));
-        }
-    }
-
-    None
-}
-
-#[derive(PartialEq, Eq, Debug)]
-enum Line {
-    Horizontal((usize, usize)),
-    Vertical((usize, usize)),
-}
-
 impl Line {
     fn sum(&self) -> usize {
         match self {
-            Self::Horizontal((i, j)) => i + 1,
-            Self::Vertical((i, j)) => (i + 1) * 100,
+            Self::Vertical(i) => i + 1,
+            Self::Horizontal(i) => (i + 1) * 100,
         }
     }
 }
 
-fn summarize2(pat: &Pattern) -> Option<Line> {
+fn summarize(pat: &Pattern, old: Option<&Line>) -> Option<Line> {
     let cmp_cols = |i: usize, j: usize| {
         for y in 0..pat.0.len() {
             if pat.0[y][i] != pat.0[y][j] {
@@ -99,12 +46,14 @@ fn summarize2(pat: &Pattern) -> Option<Line> {
                 return None;
             }
         }
-        return Some(Line::Horizontal((i, j)));
+        return Some(Line::Vertical(i));
     };
 
     for i in 0..pat.0[0].len() - 1 {
         if let Some(v) = check_horizontal(i, i + 1) {
-            return Some(v);
+            if old.map_or(true, |old| *old != v) {
+                return Some(v);
+            }
         }
     }
 
@@ -114,12 +63,14 @@ fn summarize2(pat: &Pattern) -> Option<Line> {
                 return None;
             }
         }
-        return Some(Line::Vertical((i, j)));
+        return Some(Line::Horizontal(i));
     };
 
     for i in 0..pat.0.len() - 1 {
         if let Some(v) = check_vertical(i, i + 1) {
-            return Some(v);
+            if old.map_or(true, |old| *old != v) {
+                return Some(v);
+            }
         }
     }
 
@@ -129,7 +80,7 @@ fn summarize2(pat: &Pattern) -> Option<Line> {
 fn task_one(input: &[String]) -> usize {
     let patterns = parse(input);
 
-    patterns.iter().flat_map(summarize).sum()
+    patterns.iter().map(|pat| summarize(pat, None).unwrap().sum()).sum()
 }
 
 fn task_two(input: &[String]) -> usize {
@@ -140,15 +91,13 @@ fn task_two(input: &[String]) -> usize {
     patterns
         .into_iter()
         .map(|mut pat| {
-            let old = summarize2(&pat).unwrap();
+            let old = summarize(&pat, None).unwrap();
 
             for y in 0..pat.0.len() {
                 for x in 0..pat.0[0].len() {
                     pat.0[y][x] = opp(pat.0[y][x]);
-                    if let Some(v) = summarize2(&pat) {
-                        if old != v {
+                    if let Some(v) = summarize(&pat, Some(&old)) {
                             return v.sum();
-                        }
                     }
                     pat.0[y][x] = opp(pat.0[y][x]);
                 }
