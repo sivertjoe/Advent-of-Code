@@ -1,69 +1,49 @@
 use std::collections::*;
 
 fn hash(s: &str) -> u32 {
-    let mut curr = 0;
-    for b in s.bytes() {
-        curr += b as u32;
-        curr *= 17;
-        curr %= 256;
-    }
-    curr
+    s.trim()
+        .bytes()
+        .fold(0u32, |acc, b| ((acc + (b as u32)) * 17) % 256)
 }
 
-fn task_one(_input: &[String]) -> u32 {
-    let mut sum = 0;
-    let file = std::fs::read_to_string(get_input_file()).unwrap();
-
-    for s in file.split(',') {
-        sum += hash(s.trim());
-    }
-    sum
+fn task_one(input: &str) -> u32 {
+    input.split(',').map(hash).sum()
 }
 
-fn task_two(input: &[String]) -> usize {
-    let file = std::fs::read_to_string(get_input_file()).unwrap();
+fn task_two(input: &str) -> usize {
+    let mut arr: Vec<Vec<(&str, usize)>> = vec![vec![]; 256];
 
-    let mut map: Vec<Vec<(String, usize)>> = vec![vec![]; 256];
-
-    for s in file.split(',') {
+    for s in input.split(',') {
         let s = s.trim();
         if s.contains('=') {
             let (fst, snd) = s.split_once('=').unwrap();
             let idx = hash(fst) as usize;
-            let fst = fst.to_string();
             let snd = snd.parse::<usize>().unwrap();
 
-            let mut b = &mut map[idx];
-            if let Some(lense) = b.iter_mut().find(|(s, _)| *s == fst) {
+            if let Some(lense) = arr[idx].iter_mut().find(|(s, _)| *s == fst) {
                 lense.1 = snd;
             } else {
-                b.push((fst, snd));
+                arr[idx].push((fst, snd));
             }
         } else {
-            let (fst, snd) = s.split_once('-').unwrap();
+            let fst = &s[..s.len() - 1];
             let idx = hash(fst) as usize;
-            let fst = fst.to_string();
-            //let snd = snd.parse::<usize>().unwrap();
 
-            let mut b = &mut map[idx];
-            if let Some(pos) = b.iter().position(|(s, _)| *s == fst) {
-                b.remove(pos);
-            }
+            arr[idx].retain(|(s, _)| *s != fst);
         }
     }
 
     let mut sum = 0;
-    for (i, b) in map.into_iter().enumerate() {
-        for (j, lense) in b.into_iter().enumerate() {
-            sum += (i + 1) * (j + 1) * lense.1;
+    for (i, b) in arr.into_iter().enumerate() {
+        for (j, (_, lense)) in b.into_iter().enumerate() {
+            sum += (i + 1) * (j + 1) * lense;
         }
     }
-
     sum
 }
 
 fn main() {
-    let input = read_input(get_input_file());
+    let input = std::fs::read_to_string(get_input_file()).unwrap();
     time(Task::One, task_one, &input);
     time(Task::Two, task_two, &input);
 }
