@@ -8,113 +8,75 @@ enum Dir {
     Up,
 }
 
-fn _print(vec: &[Vec<u8>], seen: &HashSet<(Dir, (usize, usize))>) {
-    for y in 0..vec.len() {
-        for x in 0..vec[0].len() {
-            if seen.iter().find(|(_, p)| *p == (y, x)).is_some() {
-                print!("#");
-            } else {
-                //print!("{}", vec[y][x] as char);
-                print!(".");
-            }
-        }
-        println!();
-    }
-    println!();
-}
-
 fn neighbors(vec: &[Vec<u8>], p: (Dir, (usize, usize))) -> Vec<(Dir, (usize, usize))> {
     let mut res = Vec::new();
 
     let bounds = |y: isize, x: isize| {
-        x >= 0 && x < vec[0].len() as isize && y >= 0 && y < vec.len() as isize
+        y >= 0 && y < vec.len() as isize && x >= 0 && x < vec[0].len() as isize
     };
 
     let (dir, pos) = p;
+    let (y, x) = (pos.0 as isize, pos.1 as isize);
+
     match dir {
         Dir::Right => match vec[pos.0][pos.1] {
-            b'.' | b'-' => {
-                res.push((Dir::Right, (pos.0 as isize, pos.1 as isize + 1)));
-            }
-            b'\\' => {
-                res.push((Dir::Down, (pos.0 as isize + 1, pos.1 as isize)));
-            }
-            b'/' => {
-                res.push((Dir::Up, (pos.0 as isize - 1, pos.1 as isize)));
-            }
+            b'.' | b'-' => res.push((Dir::Right, (y, x + 1))),
+            b'\\' => res.push((Dir::Down, (y + 1, x))),
+            b'/' => res.push((Dir::Up, (y - 1, x))),
             b'|' => {
-                res.push((Dir::Down, (pos.0 as isize + 1, pos.1 as isize)));
-                res.push((Dir::Up, (pos.0 as isize - 1, pos.1 as isize)));
+                res.push((Dir::Down, (y + 1, x)));
+                res.push((Dir::Up, (y - 1, x)));
             }
             _ => unreachable!(),
         },
         Dir::Down => match vec[pos.0][pos.1] {
-            b'.' | b'|' => {
-                res.push((Dir::Down, (pos.0 as isize + 1, pos.1 as isize)));
-            }
-            b'\\' => {
-                res.push((Dir::Right, (pos.0 as isize, pos.1 as isize + 1)));
-            }
-            b'/' => {
-                res.push((Dir::Left, (pos.0 as isize, pos.1 as isize - 1)));
-            }
+            b'.' | b'|' => res.push((Dir::Down, (y + 1, x))),
+            b'\\' => res.push((Dir::Right, (y, x + 1))),
+            b'/' => res.push((Dir::Left, (y, x - 1))),
             b'-' => {
-                res.push((Dir::Right, (pos.0 as isize, pos.1 as isize + 1)));
-                res.push((Dir::Left, (pos.0 as isize, pos.1 as isize - 1)));
+                res.push((Dir::Right, (y, x + 1)));
+                res.push((Dir::Left, (y, x - 1)));
             }
             _ => unreachable!(),
         },
         Dir::Left => match vec[pos.0][pos.1] {
-            b'.' | b'-' => {
-                res.push((Dir::Left, (pos.0 as isize, pos.1 as isize - 1)));
-            }
-            b'\\' => {
-                res.push((Dir::Up, (pos.0 as isize - 1, pos.1 as isize)));
-            }
-            b'/' => {
-                res.push((Dir::Down, (pos.0 as isize + 1, pos.1 as isize)));
-            }
+            b'.' | b'-' => res.push((Dir::Left, (y, x - 1))),
+            b'\\' => res.push((Dir::Up, (y - 1, x))),
+            b'/' => res.push((Dir::Down, (y + 1, x))),
             b'|' => {
-                res.push((Dir::Up, (pos.0 as isize - 1, pos.1 as isize)));
-                res.push((Dir::Down, (pos.0 as isize + 1, pos.1 as isize)));
+                res.push((Dir::Up, (y - 1, x)));
+                res.push((Dir::Down, (y + 1, x)));
             }
             _ => unreachable!(),
         },
         Dir::Up => match vec[pos.0][pos.1] {
-            b'.' | b'|' => {
-                res.push((Dir::Up, (pos.0 as isize - 1, pos.1 as isize)));
-            }
-            b'\\' => {
-                res.push((Dir::Left, (pos.0 as isize, pos.1 as isize - 1)));
-            }
-            b'/' => {
-                res.push((Dir::Right, (pos.0 as isize, pos.1 as isize + 1)));
-            }
+            b'.' | b'|' => res.push((Dir::Up, (y - 1, x))),
+            b'\\' => res.push((Dir::Left, (y, x - 1))),
+            b'/' => res.push((Dir::Right, (y, x + 1))),
             b'-' => {
-                res.push((Dir::Right, (pos.0 as isize, pos.1 as isize + 1)));
-                res.push((Dir::Left, (pos.0 as isize, pos.1 as isize - 1)));
+                res.push((Dir::Right, (y, x + 1)));
+                res.push((Dir::Left, (y, x - 1)));
             }
             _ => unreachable!(),
         },
     }
+
     res.into_iter()
-        .filter(|(dir, (y, x))| bounds(*y, *x))
+        .filter(|(_dir, (y, x))| bounds(*y, *x))
         .map(|(dir, (y, x))| (dir, (y as usize, x as usize)))
         .collect()
 }
 
 fn num_energized(vec: &[Vec<u8>], start: (Dir, (usize, usize))) -> usize {
-    let mut seen = HashSet::new();
+    let mut seen = HashSet::with_hasher(fxhash::FxBuildHasher::default());
     seen.insert(start);
 
-    use std::cmp::Reverse;
-    let mut stack = BinaryHeap::new();
-    stack.push((Reverse(0), start));
+    let mut stack = vec![start];
 
-    while let Some((cost, p)) = stack.pop() {
+    while let Some(p) = stack.pop() {
         for ns in neighbors(&vec, p) {
             if seen.insert(ns) {
-                stack.push((Reverse(cost.0 + 1), ns));
+                stack.push(ns);
             }
         }
     }
@@ -125,28 +87,32 @@ fn num_energized(vec: &[Vec<u8>], start: (Dir, (usize, usize))) -> usize {
         .len()
 }
 
-fn task_one(input: &[String]) -> usize {
-    let vec = input
+fn parse(input: &[String]) -> Vec<Vec<u8>> {
+    input
         .iter()
         .map(|line| line.as_bytes().to_vec())
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
+}
 
-    num_energized(&vec, (Dir::Right, (0, 0)))
+fn task_one(input: &[String]) -> usize {
+    num_energized(&parse(input), (Dir::Right, (0, 0)))
 }
 
 fn task_two(input: &[String]) -> usize {
-    let vec = input
-        .iter()
-        .map(|line| line.as_bytes().to_vec())
-        .collect::<Vec<_>>();
+    let vec = parse(input);
 
-    (0..vec.len())
-        .map(|y| [(Dir::Right, (y, 0)), (Dir::Left, (y, vec[0].len() - 1))])
-        .chain((0..vec[0].len()).map(|x| [(Dir::Down, (0, x)), (Dir::Up, (vec.len() - 1, x))]))
-        .flatten()
-        .map(|pp| num_energized(&vec, pp))
-        .max()
-        .unwrap()
+    let mut max = 0;
+    for y in 0..vec.len() {
+        max = max.max(num_energized(&vec, (Dir::Left, (y, vec[0].len() - 1))));
+        max = max.max(num_energized(&vec, (Dir::Right, (y, 0))));
+    }
+
+    for x in 0..vec[0].len() {
+        max = max.max(num_energized(&vec, (Dir::Down, (0, x))));
+        max = max.max(num_energized(&vec, (Dir::Up, (vec.len() - 1, x))));
+    }
+
+    max
 }
 
 fn main() {
