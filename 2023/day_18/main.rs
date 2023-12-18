@@ -46,85 +46,99 @@ fn task_one(input: &[String]) -> usize {
     seen.len() + set.len()
 }
 
-fn task_two(input: &[String]) -> usize {
-    let mut map: HashMap<isize, Vec<(isize, isize)>> = HashMap::new();
-
-    let mut curr: (isize, isize) = (0, 0);
-
-    for line in input.iter() {
+fn map_simple(line: &str) -> (isize, (isize, isize))
+{
         let mut iter = line.split_ascii_whitespace();
-        /* let hex = iter.last().unwrap();
-
-        let num = &hex[2..7];
-        let dir = &hex[7..8];
-
-        let num = usize::from_str_radix(num, 16).unwrap();
-
-        let (dy, dx) = match dir.trim() {
-            "3" => (-1, 0),
-            "1" => (1, 0),
-            "0" => (0, 1),
-            "2" => (0, -1),
-            _ => unreachable!(),
-        };
-        println!("{} {}", dir, num);*/
-
         let dir = iter.next().unwrap();
-        let num = iter.next().unwrap().parse::<usize>().unwrap();
+        let num = iter.next().unwrap().parse::<isize>().unwrap();
 
-        let (dy, dx) = match dir {
+        let d = match dir {
             "U" => (-1, 0),
             "D" => (1, 0),
             "R" => (0, 1),
             "L" => (0, -1),
             _ => unreachable!(),
         };
+        (num, d)
+}
 
-        for _ in 0..num {
-            curr.0 += dy;
-            curr.1 += dx;
-            println!("{:?}", curr);
-            map.entry(curr.0).or_default().push(curr);
-        }
+fn map_complex(line: &str) -> (isize, (isize, isize))
+{
+        let mut iter = line.split_ascii_whitespace();
+        let hex = iter.last().unwrap();
+
+        let num = &hex[2..7];
+        let dir = &hex[7..8];
+
+        let num = isize::from_str_radix(num, 16).unwrap();
+
+        let d = match dir.trim() {
+            "3" => (-1, 0),
+            "1" => (1, 0),
+            "0" => (0, 1),
+            "2" => (0, -1),
+            _ => unreachable!(),
+        };
+        (num, d)
+}
+
+fn poligon_area(verts: &[(isize, isize)]) -> isize {
+    let num = verts.len();
+    let mut sum1 = 0;
+    let mut sum2 = 0;
+
+    for i in 0..num-1 {
+        sum1 = sum1 + verts[i].0 * verts[i+1].1;
+        sum2 = sum2 + verts[i].1 * verts[i+1].0;
     }
 
-    let mut sum = 0;
-    let min = 0;
+    sum1 = sum1 + verts[num-1].0 * verts[0].1;
+    sum2 = sum2 + verts[num-1].1 * verts[0].0;
+
+    (sum1 - sum2).abs() / 2
+}
+
+fn task_two(input: &[String]) -> usize {
+    let mut vec = Vec::new();
+    let mut curr = (0, 0);
+
+    let mut perim = 0;
+
+    vec.push(curr);
+    for line in input.iter() {
+        let (num, d) = map_complex(line);
+        curr.0 += d.0 * num;
+        curr.1 += d.1 * num;
+
+        perim += (d.0 * num + d.1 * num).abs();
+
+        vec.push(curr);
+    }
+    ((perim / 2 + 1) + poligon_area(&vec)) as _
+}
+
+
+fn _print(map: &HashMap<isize, Vec<isize>>) {
+    let min: isize = *map.keys().min().unwrap();
     let max: isize = *map.keys().max().unwrap();
 
-    for cy in 0..=max {
-        let mut vec = map.get_mut(&cy).unwrap();
-        vec.sort();
+    let global_min = *map.values().flatten().min().unwrap();
 
-        let mut local = 0;
-        let mut start = Option::<isize>::None;
-        let mut stop = Option::<isize>::None;
+    for cy in min..=max {
+        let set = map.get(&cy).unwrap().iter().copied().collect::<HashSet<_>>();
+        let max = set.iter().copied().max().unwrap();
 
-        for arr in vec.windows(2) {
-            println!("{cy}: {:?}", arr);
-            if start.is_none() {
-                start = Some(arr[0].1);
-            }
-            if arr[1].1 != (arr[0].1 + 1) {
-                stop = Some(arr[1].1);
+        print!("{} ", cy);
+        for x in global_min..=max {
+            if set.contains(&x) {
+                print!("#");
             } else {
-                // do something?
+                print!(".");
             }
+        }
+        println!();
 
-            if let (Some(st), Some(ed)) = (start, stop) {
-                local += ed - st;
-                start = None;
-                stop = None;
-            }
-        }
-        if let (Some(st), None) = (start, stop) {
-            local += vec.len() as isize;
-        }
-        println!("{}", local);
-        sum += local;
     }
-
-    sum as usize
 }
 
 fn main() {
