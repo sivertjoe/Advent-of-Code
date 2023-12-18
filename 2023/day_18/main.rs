@@ -1,85 +1,35 @@
-use std::collections::*;
+fn map_simple(line: &str) -> (isize, (isize, isize)) {
+    let mut iter = line.split_ascii_whitespace();
+    let dir = iter.next().unwrap();
+    let num = iter.next().unwrap().parse::<isize>().unwrap();
 
-fn task_one(input: &[String]) -> usize {
-    //let mut map = HashMap::new();
-    let mut set = HashSet::new();
-
-    let mut curr: (isize, isize) = (0, 0);
-
-    let mut start_x = 0;
-    let mut start_y = 0;
-
-    for line in input.iter() {
-        let mut iter = line.split_ascii_whitespace();
-        let dir = iter.next().unwrap();
-        let num = iter.next().unwrap().parse::<usize>().unwrap();
-
-        let (dy, dx) = match dir {
-            "U" => (-1, 0),
-            "D" => (1, 0),
-            "R" => (0, 1),
-            "L" => (0, -1),
-            _ => unreachable!(),
-        };
-
-        for _ in 0..num {
-            set.insert(curr);
-            curr.0 += dy;
-            curr.1 += dx;
-        }
-    }
-
-    let mut start = (1, 4);
-    let mut stack = vec![start];
-    let mut seen = HashSet::new();
-    seen.insert(start);
-
-    while let Some(p) = stack.pop() {
-        for n in [(-1, 0), (1, 0), (0, 1), (0, -1)] {
-            let next = (p.0 + n.0, p.1 + n.1);
-            if !set.contains(&next) && seen.insert(next) {
-                stack.push(next);
-            }
-        }
-    }
-
-    seen.len() + set.len()
+    let d = match dir {
+        "U" => (-1, 0),
+        "D" => (1, 0),
+        "R" => (0, 1),
+        "L" => (0, -1),
+        _ => unreachable!(),
+    };
+    (num, d)
 }
 
-fn map_simple(line: &str) -> (isize, (isize, isize))
-{
-        let mut iter = line.split_ascii_whitespace();
-        let dir = iter.next().unwrap();
-        let num = iter.next().unwrap().parse::<isize>().unwrap();
+fn map_complex(line: &str) -> (isize, (isize, isize)) {
+    let iter = line.split_ascii_whitespace();
+    let hex = iter.last().unwrap();
 
-        let d = match dir {
-            "U" => (-1, 0),
-            "D" => (1, 0),
-            "R" => (0, 1),
-            "L" => (0, -1),
-            _ => unreachable!(),
-        };
-        (num, d)
-}
+    let num = &hex[2..7];
+    let dir = &hex[7..8];
 
-fn map_complex(line: &str) -> (isize, (isize, isize))
-{
-        let mut iter = line.split_ascii_whitespace();
-        let hex = iter.last().unwrap();
+    let num = isize::from_str_radix(num, 16).unwrap();
 
-        let num = &hex[2..7];
-        let dir = &hex[7..8];
-
-        let num = isize::from_str_radix(num, 16).unwrap();
-
-        let d = match dir.trim() {
-            "3" => (-1, 0),
-            "1" => (1, 0),
-            "0" => (0, 1),
-            "2" => (0, -1),
-            _ => unreachable!(),
-        };
-        (num, d)
+    let d = match dir.trim() {
+        "3" => (-1, 0),
+        "1" => (1, 0),
+        "0" => (0, 1),
+        "2" => (0, -1),
+        _ => unreachable!(),
+    };
+    (num, d)
 }
 
 fn poligon_area(verts: &[(isize, isize)]) -> isize {
@@ -87,26 +37,29 @@ fn poligon_area(verts: &[(isize, isize)]) -> isize {
     let mut sum1 = 0;
     let mut sum2 = 0;
 
-    for i in 0..num-1 {
-        sum1 = sum1 + verts[i].0 * verts[i+1].1;
-        sum2 = sum2 + verts[i].1 * verts[i+1].0;
+    for i in 0..num - 1 {
+        sum1 += verts[i].0 * verts[i + 1].1;
+        sum2 += verts[i].1 * verts[i + 1].0;
     }
 
-    sum1 = sum1 + verts[num-1].0 * verts[0].1;
-    sum2 = sum2 + verts[num-1].1 * verts[0].0;
+    sum1 += verts[num - 1].0 * verts[0].1;
+    sum2 += verts[num - 1].1 * verts[0].0;
 
     (sum1 - sum2).abs() / 2
 }
 
-fn task_two(input: &[String]) -> usize {
+fn lagoon_area<F>(input: &[String], f: F) -> usize
+where
+    F: Fn(&str) -> (isize, (isize, isize)),
+{
     let mut vec = Vec::new();
     let mut curr = (0, 0);
 
     let mut perim = 0;
-
     vec.push(curr);
+
     for line in input.iter() {
-        let (num, d) = map_complex(line);
+        let (num, d) = f(line);
         curr.0 += d.0 * num;
         curr.1 += d.1 * num;
 
@@ -117,28 +70,11 @@ fn task_two(input: &[String]) -> usize {
     ((perim / 2 + 1) + poligon_area(&vec)) as _
 }
 
-
-fn _print(map: &HashMap<isize, Vec<isize>>) {
-    let min: isize = *map.keys().min().unwrap();
-    let max: isize = *map.keys().max().unwrap();
-
-    let global_min = *map.values().flatten().min().unwrap();
-
-    for cy in min..=max {
-        let set = map.get(&cy).unwrap().iter().copied().collect::<HashSet<_>>();
-        let max = set.iter().copied().max().unwrap();
-
-        print!("{} ", cy);
-        for x in global_min..=max {
-            if set.contains(&x) {
-                print!("#");
-            } else {
-                print!(".");
-            }
-        }
-        println!();
-
-    }
+fn task_one(input: &[String]) -> usize {
+    lagoon_area(input, map_simple)
+}
+fn task_two(input: &[String]) -> usize {
+    lagoon_area(input, map_complex)
 }
 
 fn main() {
