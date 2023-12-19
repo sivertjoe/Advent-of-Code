@@ -32,12 +32,12 @@ impl Part {
             _ => unreachable!(),
         }
     }
-    fn sum2(&self) -> usize {
+    fn sum3(&self) -> usize {
         sum_n(4000) * 4
     }
 }
 
-fn sum_n(n: usize) -> usize {
+const fn sum_n(n: usize) -> usize {
     assert!((100 * (100 + 1)) / 2 == 5050);
     (n * (n + 1)) / 2
 }
@@ -80,7 +80,7 @@ impl Rule {
         }*/
 
         match self.cmp {
-            None => ((
+            None => Some((part.sum3(), self.res.clone())),
             Some(Cmp::Less(ch, num)) => {
                 let rest = (4000 - num) - 1;
                 Some((rest * part.sum2(ch), self.res.clone()))
@@ -208,25 +208,130 @@ fn task_one(input: &[String]) -> usize {
         .sum()
 }
 
-fn evaluate2(part: &Part, workflows: &HashMap<String, Workflow>) -> Option<usize> {
-    let mut w = workflows.get("in").unwrap();
-    loop {
-        match w.eval(part) {
-            Res::Accept => return Some(part.sum()),
-            Res::Reject => return None,
-            Res::Rule(new) => {
-                w = workflows.get(&new).unwrap();
+fn col(rules: &[Rule], workflows: &HashMap<String, Workflow>, curr: [(usize, usize); 4], ss: String) -> usize {
+    let mut curr = curr;
+    let mut sum = 0;
+
+    const TH: usize = 4000 * 4000 * 4000;
+    const FO: usize = TH * 4000;
+
+    let _idx = |ch: char| {
+        match ch {
+            'x' => 0,
+            'm' => 1,
+            'a' => 2,
+            's' => 3,
+            _ => unreachable!()
+        }
+    };
+    let idx = |r: &Rule| {
+        match r.cmp {
+            Some(Cmp::Less(ch, _)) => _idx(ch),
+            Some(Cmp::Greater(ch, _)) => _idx(ch),
+            _ => 0,
+        }
+    };
+
+    let get_sum = |r: &Rule| {
+        match r.cmp {
+            None => 4000,
+            Some(Cmp::Less(_, num)) => num,
+            Some(Cmp::Greater(_, num)) => num
+        }
+    };
+
+    let is_greater = |r: &Rule| 
+        match r.cmp {
+            Some(Cmp::Greater(_, _)) => true,
+            _ => false
+        };
+
+
+    println!("before:{:?}", curr);
+    for rule in rules {
+        let mut new = curr.clone();
+        let idx = idx(rule);
+        match rule.cmp {
+            None => {},
+            Some(Cmp::Greater(_, num)) => {
+                new[idx].0 = num+1;
+                curr[idx].1 = num;
+            }
+            Some(Cmp::Less(_, num)) => {
+                new[idx].1 = num-1;
+                curr[idx].0 = num;
+            }
+        };
+        println!("{ss} {:?}\nmy: {:?}\nother:{:?}\n\n", rule, curr, new);
+
+        match &rule.res {
+            Res::Accept => {
+                println!("ACC {:?} {:?}", curr, new);
+                sum += new.into_iter().map(|(st, ed)| (ed + 1).saturating_sub(st)).product::<usize>()
+            }
+            Res::Rule(s) => {
+                let num = get_sum(&rule);
+                match rule.cmp {
+                    None => {
+                        sum += ex(workflows, s.clone(), new);
+                    },
+                    Some(Cmp::Less(_, num)) => {
+                        sum += ex(workflows, s.clone(), new);
+                    }
+                    Some(Cmp::Greater(_, num)) => {
+                        sum += ex(workflows, s.clone(), new);
+                    }
+        };
+            }
+            Res::Reject => {
+                let num = get_sum(&rule);
+                //curr[idx(&rule)] = 4000 - num;
             }
         }
     }
+    sum
+}
+
+fn _col(rules: &[Rule], workflows: &HashMap<String, Workflow>, curr: [(usize, usize); 4], ss: String) -> usize {
+    let mut curr = curr;
+    let mut sum = 0;
+
+    const TH: usize = 4000 * 4000 * 4000;
+    const FO: usize = TH * 4000;
+
+    let _idx = |ch: char| {
+        match ch {
+            'x' => 0,
+            'm' => 1,
+            'a' => 2,
+            's' => 3,
+            _ => unreachable!()
+        }
+    };
+
+
+    for rule in rules {
+    }
+    sum
+}
+
+// 167409079868000
+// 167409079868000
+// 35896635000000
+fn ex(workflows: &HashMap<String, Workflow>, s: String, arr: [(usize, usize); 4]) -> usize {
+    println!("EX {s}");
+    let w = workflows.get(&s).unwrap();
+    col(&w.0, &workflows, arr, s)
+}
+
+fn solve(workflows: &HashMap<String, Workflow>) -> usize {
+    let mut initial = [(1, 4000), (1, 4000), (1,4000), (1,4000)];
+    ex(&workflows, "in".to_string(), initial)
 }
 
 fn task_two(input: &[String]) -> usize {
-    let (workflows, parts) = parse(input);
-    parts
-        .into_iter()
-        .flat_map(|part| evaluate2(&part, &workflows))
-        .sum()
+    let (workflows, _parts) = parse(input);
+    solve(&workflows)
 }
 
 fn main() {
@@ -283,4 +388,63 @@ fn get_input_file() -> String {
     std::env::args()
         .nth(1)
         .unwrap_or_else(|| "input".to_string())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn only_accept() {
+        let mut map = HashMap::new();
+        map.insert("in".to_string(), Workflow(vec![Rule { cmp: None, res: Res::Accept } ]));
+        assert_eq!(solve(&map), 4000*4000*4000*4000);
+    }
+    #[test]
+    fn one_rule_to_accept_other_rule_accept_greater() {
+        let mut map = HashMap::new();
+        map.insert("in".to_string(), Workflow(vec![
+            Rule { cmp: Some(Cmp::Greater('x', 500)), res: Res::Rule("qr".to_string()) },
+            Rule { cmp: None, res: Res::Accept }
+
+        ]));
+
+        map.insert("qr".to_string(), Workflow(vec![
+            Rule { cmp: None, res: Res::Accept }
+
+        ]));
+        assert_eq!(solve(&map), 4000*4000*4000*4000);
+    }
+
+    #[test]
+    fn one_rule_to_accept_other_rule_accept_less() {
+        let mut map = HashMap::new();
+        map.insert("in".to_string(), Workflow(vec![
+            Rule { cmp: Some(Cmp::Less('x', 500)), res: Res::Rule("qr".to_string()) },
+            Rule { cmp: None, res: Res::Accept }
+
+        ]));
+
+        map.insert("qr".to_string(), Workflow(vec![
+            Rule { cmp: None, res: Res::Accept }
+
+        ]));
+        assert_eq!(solve(&map), 4000*4000*4000*4000);
+    }
+    #[test]
+    fn impossible_x_lessthan_500_and_greater_than_500() {
+        let mut map = HashMap::new();
+        map.insert("in".to_string(), Workflow(vec![
+            Rule { cmp: Some(Cmp::Greater('x', 500)), res: Res::Rule("qr".to_string()) },
+            Rule { cmp: None, res: Res::Reject }
+
+        ]));
+        map.insert("qr".to_string(), Workflow(vec![
+            Rule { cmp: Some(Cmp::Less('x', 500)), res: Res::Accept },
+            Rule { cmp: None, res: Res::Reject }
+
+        ]));
+
+        assert_eq!(solve(&map), 0);
+    }
 }
