@@ -7,14 +7,10 @@ enum Module {
     Conjunction(HashMap<String, bool>),
 }
 
-fn parse(
-    input: &[String],
-) -> (
-    HashMap<String, (Module, bool, Vec<String>)>,
-    HashMap<String, bool>,
-) {
+type Map = HashMap<String, (Module, bool, Vec<String>)>;
+
+fn parse(input: &[String]) -> Map {
     let mut map = HashMap::new();
-    let mut state = HashMap::new();
 
     for line in input {
         let (fst, snd) = line.split_once(" -> ").unwrap();
@@ -34,7 +30,6 @@ fn parse(
             iter.collect::<String>()
         };
 
-        state.insert(name.clone(), false);
         map.insert(name, (module, false, send));
     }
 
@@ -48,14 +43,6 @@ fn parse(
                     .collect::<Vec<_>>()
             };
             temp.push((name.clone(), inputs));
-            /*for i in inputs {
-                match map.get_mut(name).unwrap().0 {
-                    Module::Conjunction(ref mut map) => {
-                        map.insert(i, false);
-                    }
-                    _ => {}
-                }
-            }*/
         }
     }
 
@@ -70,18 +57,21 @@ fn parse(
         }
     }
 
-    (map, state)
+    map
 }
 
-type Map = HashMap<String, (Module, bool, Vec<String>)>;
-
-fn handle_pulse(map: &mut Map, from: String, to: String, pulse: bool) -> Option<(bool, Vec<String>)> {
+fn handle_pulse(
+    map: &mut Map,
+    from: String,
+    to: String,
+    pulse: bool,
+) -> Option<(bool, Vec<String>)> {
     if !map.contains_key(&to) {
         return None;
     }
     let (module, state, dests) = map.get_mut(&to).unwrap();
     match module {
-        Module::FlipFlop  => {
+        Module::FlipFlop => {
             if pulse {
                 None
             } else {
@@ -93,14 +83,15 @@ fn handle_pulse(map: &mut Map, from: String, to: String, pulse: bool) -> Option<
             map.insert(from, pulse);
             Some((!map.values().all(|b| *b), dests.clone()))
         }
-        Module::Broadcast => {
-            Some((pulse, dests.clone()))
-        }
+        Module::Broadcast => Some((pulse, dests.clone())),
     }
 }
 
-fn _press_button(
-    map: &mut HashMap<String, (Module, bool, Vec<String>)>,
+fn press_button(
+    map: &mut Map,
+    vecs: &[String],
+    temp: &mut HashMap<String, usize>,
+    i: usize,
 ) -> (usize, usize) {
     let mut stack = VecDeque::new();
     stack.push_back(("button".to_string(), "broadcaster".to_string(), false));
@@ -109,6 +100,10 @@ fn _press_button(
 
     while let Some((from, to, pulse)) = stack.pop_front() {
         if let Some((pulse, dsts)) = handle_pulse(map, from, to.clone(), pulse) {
+            // For part 2
+            if vecs.contains(&to) && pulse && !temp.contains_key(&to) {
+                temp.insert(to.clone(), i);
+            }
             for dst in dsts {
                 stack.push_back((to.clone(), dst, pulse));
                 if pulse {
@@ -122,70 +117,51 @@ fn _press_button(
     (low, high)
 }
 
-fn _press_button2(
-    map: &mut HashMap<String, (Module, bool, Vec<String>)>,
-    vecs: &[String],
-    temp: &mut HashMap<String, usize>,
-    i: usize
-) -> bool {
-    let mut stack = VecDeque::new();
-    stack.push_back(("button".to_string(), "broadcaster".to_string(), false));
+fn get_inputs_for(map: &Map, module: String) -> Vec<String> {
+    let mut vec = Vec::new();
 
-    while let Some((from, to, pulse)) = stack.pop_front() {
-        if let Some((pulse, dsts)) = handle_pulse(map, from, to.clone(), pulse) {
-            if vecs.contains(&to) && pulse && !temp.contains_key(&to) {
-                temp.insert(to.clone(), i);
-            }
-
-            for dst in dsts {
-                stack.push_back((to.clone(), dst, pulse));
-            }
+    for (name, (typ, _, dsts)) in map {
+        if matches!(typ, Module::Conjunction(_)) && dsts.contains(&module) {
+            vec.push(name.clone());
         }
     }
-    temp.len() == vecs.len()
+
+    vec
 }
 
+fn get_rx_source(map: &Map) -> String {
+    let rx = "rx".to_string();
+    for (name, (.., dsts)) in map {
+        if dsts.contains(&rx) {
+            return name.clone();
+        }
+    }
+    unreachable!()
+}
 
 fn task_one(input: &[String]) -> usize {
-    let (mut map, _) = parse(input);
+    let mut map = parse(input);
     let mut low = 0;
     let mut high = 0;
     for _ in 0..1000 {
-        let (l, h) = _press_button(&mut map);
+        let (l, h) = press_button(&mut map, &[], &mut HashMap::new(), 0);
         low += l;
         high += h;
     }
     low * high
 }
 
-fn parse2(map: &Map) -> Vec<String> {
-    let mut vec = HashSet::new();
-    let mut stack = vec!["rx".to_string()];
-
-    while let Some(s) = stack.pop() {
-        for (name, (typ, _, dsts)) in map {
-            if matches!(typ, Module::Conjunction(_)) && dsts.contains(&s) {
-                vec.insert(name.clone());
-                stack.push(name.clone());
-            }
-        }
-    }
-    
-    vec.into_iter().collect::<Vec<_>>()
-}
-
 fn task_two(input: &[String]) -> usize {
-    let (mut map, _) = parse(input);
-    //let tmp = parse2(&map);
-    let tmp = vec!["xc".into(), "th".into(), "pd".into(), "bp".into()];
-    let mut temp = HashMap::new();
-    for i in 1..{
-        if _press_button2(&mut map, &tmp, &mut temp, i)
-        {
-            break;
-        }
+    let mut map = parse(input);
+    let inputs = get_inputs_for(&map, get_rx_source(&map));
+    let mut cycles = HashMap::new();
+    let mut i = 1;
+
+    while cycles.len() != inputs.len() {
+        press_button(&mut map, &inputs, &mut cycles, i);
+        i += 1;
     }
-    temp.into_values().product()
+    cycles.into_values().product()
 }
 
 fn main() {
