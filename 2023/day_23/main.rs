@@ -38,10 +38,10 @@ fn get_dir(elem: u8, prev: (usize, usize), new: (usize, usize)) -> Dir {
     }
 }
 
-fn neighbors(vec: &[Vec<u8>], pos: (usize, usize)) -> Vec<((usize, usize))> {
+fn neighbors(vec: &[Vec<u8>], pos: (usize, usize), p1: bool) -> Vec<((usize, usize))> {
     let mut res = Vec::new();
 
-    if matches!(vec[pos.0][pos.1], b'>' | b'^' | b'v' | b'<') {
+    if p1 && matches!(vec[pos.0][pos.1], b'>' | b'^' | b'v' | b'<') {
         let n = match vec[pos.0][pos.1] {
             b'>' => (pos.0, pos.1 + 1),
             b'<' => (pos.0, pos.1 - 1),
@@ -70,10 +70,10 @@ fn neighbors(vec: &[Vec<u8>], pos: (usize, usize)) -> Vec<((usize, usize))> {
                 res.push((y, x));
             }
             b'>' | b'<' | b'^' | b'v' => {
-                let dir = get_dir(elem, pos, (y, x));
-                if matches!(dir, Dir::Up) {
-                    continue;
-                }
+                // let dir = get_dir(elem, pos, (y, x));
+                // if matches!(dir, Dir::Up) {
+                //     continue;
+                // }
                 /*match (dir, state) {
                     (_, None) => {
                         res.push(((y, x), Some(dir)));
@@ -100,6 +100,7 @@ fn explore(
     pos: (usize, usize),
     cost: usize,
     mut seen: HashSet<(usize, usize)>,
+    part1: bool,
 ) -> Option<usize> {
     let mut stack = Vec::new();
     stack.push((cost, pos));
@@ -119,14 +120,14 @@ fn explore(
             continue;
         }
 
-        for ns in neighbors(&vec, pos) {
+        for ns in neighbors(&vec, pos, part1) {
             if vec[ns.0][ns.1] == b'.' {
                 if seen.insert(ns) {
                     stack.push((cost + 1, ns));
                 }
             }
             if !seen.contains(&ns) {
-                match explore(vec, ns, cost + 1, seen.clone()) {
+                match explore(vec, ns, cost + 1, seen.clone(), part1) {
                     None => {}
                     Some(len) => match longest {
                         None => {
@@ -134,6 +135,13 @@ fn explore(
                         }
                         Some(dist) => {
                             longest = Some(dist.max(len));
+                            unsafe {
+                                let old = LONGETS;
+                                LONGETS = dist.max(LONGETS);
+                                if old != LONGETS {
+                                    println!("{}", LONGETS);
+                                }
+                            }
                         }
                     },
                 }
@@ -144,6 +152,8 @@ fn explore(
     longest
 }
 
+static mut LONGETS: usize = 0;
+
 fn task_one(input: &[String]) -> usize {
     let vec = input
         .iter()
@@ -151,11 +161,17 @@ fn task_one(input: &[String]) -> usize {
         .collect::<Vec<_>>();
 
     let start = (0, 1);
-    explore(&vec, start, 0, HashSet::new()).unwrap()
+    explore(&vec, start, 0, HashSet::new(), true).unwrap()
 }
 
 fn task_two(input: &[String]) -> usize {
-    unimplemented!()
+    let vec = input
+        .iter()
+        .map(|line| line.as_bytes().to_vec())
+        .collect::<Vec<_>>();
+
+    let start = (0, 1);
+    explore(&vec, start, 0, HashSet::new(), false).unwrap()
 }
 
 fn main() {
