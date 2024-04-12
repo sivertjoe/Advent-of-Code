@@ -1,84 +1,50 @@
 use std::collections::*;
 
-type Map<K, V> = HashMap<K, V, std::hash::BuildHasherDefault<fxhash::FxHasher>>;
-//type Set<V> = HashSet<V, std::hash::BuildHasherDefault<fxhash::FxHasher>>;
+use petgraph::prelude::*;
+use rustworkx_core::connectivity::stoer_wagner_min_cut;
+
+fn parse(input: &[String]) -> HashMap<&str, Vec<&str>> {
+    input
+        .iter()
+        .map(|l| {
+            let (fst, snd) = l.split_once(": ").unwrap();
+            (fst, snd.split_whitespace().collect())
+        })
+        .collect()
+}
 
 fn task_one(input: &[String]) -> usize {
-    let mut v = HashSet::new();
-    let mut e = HashSet::new();
+    let modules = parse(input);
+    let mut graph: Graph<&str, (), Undirected, u32> = Graph::default();
 
-    for line in input {
-        let (fst, snd) = line.split_once(": ").unwrap();
-        v.insert(fst.to_string());
-
-        for snd in snd.split_ascii_whitespace() {
-            v.insert(snd.to_string());
-            e.insert((fst.to_string(), snd.to_string()));
-        }
-    }
-
-    let mut rng = rand::thread_rng();
-    use rand::prelude::*;
-
-    let mut subsets: Vec<HashSet<String>> = Vec::new();
-    subsets = v
-        .iter()
-        .map(|v| HashSet::from_iter(std::iter::once(v.to_string())))
+    let mut nodes: HashMap<_, _> = modules
+        .keys()
+        .map(|name| (*name, graph.add_node(*name)))
         .collect();
 
-    loop {
-        let mut rng = rand::thread_rng();
-        let (v, w) = e.choose(&mut rng).unwrap();
-
-        let s1 = ss(&subsets, &v);
-        let s2 = ss(&subsets, &w);
-
-        if s1 != s2 {
-            let s1_index = subsets.iter().position(|s| s.contains(&v)).unwrap();
-            let s2_index = subsets.iter().position(|s| s.contains(&w)).unwrap();
-
-            subsets[s1_index].extend(subsets[s2_index].drain());
-            subsets.remove(s2_index);
-        }
-
-        if subsets.len() <= 2 {
-            break;
+    for name in modules.values().flat_map(|v| v.iter()) {
+        if !nodes.contains_key(name) {
+            let node = graph.add_node(name);
+            nodes.insert(name, node);
         }
     }
 
-    subsets.iter().map(|s| s.len()).product()
-}
-
-fn ss(subsets: &[HashSet<String>], v: &str) -> HashSet<String> {
-    subsets.iter().find(|s| s.contains(v)).cloned().unwrap()
-}
-
-fn explore(map: &Map<String, Vec<String>>, start: String) -> usize {
-    let mut seen = HashSet::new();
-    seen.insert(start.as_str());
-
-    let mut stack = vec![start.as_str()];
-    while let Some(curr) = stack.pop() {
-        if let Some(ns) = map.get(curr) {
-            for n in ns {
-                if seen.insert(n.as_str()) {
-                    stack.push(n.as_str());
-                }
-            }
+    for (&src, dsts) in &modules {
+        for d in dsts {
+            graph.add_edge(nodes[src], nodes[d], ());
         }
     }
 
-    seen.len()
-}
+    let (_len, nodes) = stoer_wagner_min_cut(&graph, |_| Result::<usize, ()>::Ok(1))
+        .unwrap()
+        .unwrap();
 
-fn task_two(input: &[String]) -> usize {
-    unimplemented!()
+    nodes.len() * (graph.node_count() - nodes.len())
 }
 
 fn main() {
     let input = read_input(get_input_file());
     time(Task::One, task_one, &input);
-    time(Task::Two, task_two, &input);
 }
 
 fn read_input<P>(path: P) -> Vec<String>
@@ -94,7 +60,6 @@ where
 
 enum Task {
     One,
-    Two,
 }
 
 fn time<F, T, U>(task: Task, f: F, arg: T)
@@ -118,9 +83,6 @@ where
     match task {
         Task::One => {
             println!("({}{u})\tTask one: \x1b[0;34;34m{}\x1b[0m", elapsed, res);
-        }
-        Task::Two => {
-            println!("({}{u})\tTask two: \x1b[0;33;10m{}\x1b[0m", elapsed, res);
         }
     };
 }
