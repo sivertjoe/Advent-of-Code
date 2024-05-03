@@ -1,177 +1,192 @@
 use std::collections::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Ord, PartialOrd, Eq, Hash)]
-enum Dir {
-    Up,
-    Down,
+#[derive(Clone, Copy)]
+struct Direction {
+    row: isize,
+    col: isize,
 }
 
-fn get_dir(elem: u8, prev: (usize, usize), new: (usize, usize)) -> Dir {
-    if new.1 != prev.1 {
-        if new.1 < prev.1 {
-            if elem == b'<' {
-                Dir::Down
-            } else {
-                Dir::Up
-            }
-        } else {
-            if elem == b'<' {
-                Dir::Up
-            } else {
-                Dir::Down
-            }
-        }
+impl Direction {
+    const fn new(row: isize, col: isize) -> Self {
+        Self { row, col }
+    }
+}
+
+struct Edge {
+    end: Point,
+    dist: usize,
+}
+
+#[derive(Hash, Eq, PartialEq, Clone, Copy)]
+struct Point {
+    row: usize,
+    col: usize,
+}
+
+impl Point {
+    fn new((row, col): (usize, usize)) -> Self {
+        Self { row, col }
+    }
+    fn add_dir(&self, dir: Direction) -> Option<Self> {
+        let col = self.col.checked_add_signed(dir.col)?;
+        let row = self.row.checked_add_signed(dir.row)?;
+        Some(Point { col, row })
+    }
+}
+
+const MOTIONS: [Direction; 4] = [
+    Direction::new(-1, 0),
+    Direction::new(0, 1),
+    Direction::new(1, 0),
+    Direction::new(0, -1),
+];
+
+fn in_limits(map: &[Vec<u8>], row: usize, col: usize) -> bool {
+    row < map.len() && col < map[0].len()
+}
+
+fn can_go_there(current: &Point, next: &Point, map: &[Vec<u8>]) -> bool {
+    let ch = map[next.row][next.col];
+    if current.row > next.row {
+        ch != b'v'
+    } else if current.row < next.row {
+        ch != b'^'
+    } else if current.col > next.col {
+        ch != b'>'
     } else {
-        if new.0 < prev.0 {
-            if elem == b'^' {
-                Dir::Down
-            } else {
-                Dir::Up
-            }
-        } else {
-            if elem == b'^' {
-                Dir::Up
-            } else {
-                Dir::Down
-            }
-        }
+        ch != b'<'
     }
 }
 
-fn neighbors(vec: &[Vec<u8>], pos: (usize, usize), p1: bool) -> Vec<((usize, usize))> {
-    let mut res = Vec::new();
+fn find_all_points(map: &[Vec<u8>], start: Point, end: Point) -> HashSet<Point> {
+    let mut stack: VecDeque<Point> = VecDeque::new();
+    let mut seen: Vec<Vec<bool>> = vec![vec![false; map[0].len()]; map.len()];
+    let mut nodes: HashSet<Point> = HashSet::new();
+    nodes.insert(start);
+    nodes.insert(end);
 
-    if p1 && matches!(vec[pos.0][pos.1], b'>' | b'^' | b'v' | b'<') {
-        let n = match vec[pos.0][pos.1] {
-            b'>' => (pos.0, pos.1 + 1),
-            b'<' => (pos.0, pos.1 - 1),
-            b'^' => (pos.0 - 1, pos.1),
-            b'v' => (pos.0 + 1, pos.1),
-            _ => unreachable!(),
-        };
-        res.push(n);
-        return res;
-    }
-
-    let y = pos.0 as isize;
-    let x = pos.1 as isize;
-
-    for (y, x) in [(y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)] {
-        if !(y >= 0 && y < vec.len() as isize && x >= 0 && x < vec[0].len() as isize) {
-            continue;
+    stack.push_back(start);
+    while let Some(current) = stack.pop_front() {
+        seen[current.row][current.col] = true;
+        let mut count = 0;
+        for next in MOTIONS
+            .iter()
+            .filter_map(|dir| current.add_dir(*dir))
+            .filter(|next| in_limits(map, next.row, next.col) && map[next.row][next.col] != b'#')
+        {
+            count += 1;
+            if !seen[next.row][next.col] {
+                stack.push_back(next);
+            }
         }
-        let y = y as usize;
-        let x = x as usize;
-
-        let elem = vec[y][x];
-        match elem {
-            b'#' => continue,
-            b'.' => {
-                res.push((y, x));
-            }
-            b'>' | b'<' | b'^' | b'v' => {
-                // let dir = get_dir(elem, pos, (y, x));
-                // if matches!(dir, Dir::Up) {
-                //     continue;
-                // }
-                /*match (dir, state) {
-                    (_, None) => {
-                        res.push(((y, x), Some(dir)));
-                    }
-                    (Dir::Up, Some(Dir::Down)) => {
-                        res.push(((y, x), Some(dir)));
-                    }
-                    (Dir::Down, Some(Dir::Up)) => {
-                        res.push(((y, x), Some(dir)));
-                    }
-                    _ => {}
-                };*/
-                res.push((y, x));
-            }
-            _ => unreachable!(),
+        if count > 2 {
+            nodes.insert(current);
         }
     }
-
-    res
+    nodes
 }
 
-fn explore(
-    vec: &[Vec<u8>],
-    pos: (usize, usize),
-    cost: usize,
-    mut seen: HashSet<(usize, usize)>,
-    part1: bool,
-) -> Option<usize> {
-    let mut stack = Vec::new();
-    stack.push((cost, pos));
+fn get_edges(map: &[Vec<u8>], nodes: &HashSet<Point>, part_two: bool) -> HashMap<Point, Vec<Edge>> {
+    let mut edges: HashMap<Point, Vec<Edge>> = HashMap::new();
 
-    seen.insert(pos);
+    for node in nodes.iter() {
+        let mut seen: Vec<Vec<bool>> = vec![vec![false; map[0].len()]; map.len()];
 
-    let end = (vec.len() - 1, vec[0].len() - 2);
+        let mut stack: VecDeque<(Point, usize)> = VecDeque::new();
+        stack.push_back((*node, 0));
 
-    let mut longest = None;
+        while let Some((current, current_dist)) = stack.pop_front() {
+            seen[current.row][current.col] = true;
 
-    while let Some((cost, pos)) = stack.pop() {
-        if pos == end {
-            longest = match longest {
-                None => Some(cost),
-                Some(cc) => Some(cost.max(cc)),
-            };
-            continue;
-        }
+            for next in MOTIONS.iter().filter_map(|dir| current.add_dir(*dir)) {
+                if in_limits(map, next.row, next.col)
+                    && map[next.row][next.col] != b'#'
+                    && !seen[next.row][next.col]
+                    && (can_go_there(&current, &next, map) || part_two)
+                {
+                    let next_dist = current_dist + 1;
 
-        for ns in neighbors(&vec, pos, part1) {
-            if vec[ns.0][ns.1] == b'.' {
-                if seen.insert(ns) {
-                    stack.push((cost + 1, ns));
-                }
-            }
-            if !seen.contains(&ns) {
-                match explore(vec, ns, cost + 1, seen.clone(), part1) {
-                    None => {}
-                    Some(len) => match longest {
-                        None => {
-                            longest = Some(len);
-                        }
-                        Some(dist) => {
-                            longest = Some(dist.max(len));
-                            unsafe {
-                                let old = LONGETS;
-                                LONGETS = dist.max(LONGETS);
-                                if old != LONGETS {
-                                    println!("{}", LONGETS);
-                                }
-                            }
-                        }
-                    },
+                    if !nodes.contains(&next) {
+                        stack.push_back((next, next_dist));
+                    } else {
+                        let vec = edges.entry(*node).or_default();
+                        let edge = Edge {
+                            end: next,
+                            dist: next_dist,
+                        };
+                        vec.push(edge);
+                        let edge = Edge {
+                            end: *node,
+                            dist: next_dist,
+                        };
+                        vec.push(edge);
+                    }
                 }
             }
         }
     }
-
-    longest
+    edges
 }
 
-static mut LONGETS: usize = 0;
+fn solve(input: &[String], part_two: bool) -> usize {
+    let map: Vec<Vec<u8>> = input.iter().map(|s| s.as_bytes().to_vec()).collect();
+    let start = Point::new((0, input[0].chars().position(|ch| ch == '.').unwrap()));
+    let end = Point::new((
+        input.len() - 1,
+        input
+            .last()
+            .unwrap()
+            .chars()
+            .position(|ch| ch == '.')
+            .unwrap(),
+    ));
+
+    let nodes = find_all_points(&map, start, end);
+    let edges = get_edges(&map, &nodes, part_two);
+
+    let mut seen: Vec<Vec<bool>> = vec![vec![false; map[0].len()]; map.len()];
+    let mut stack: VecDeque<(Point, usize)> = VecDeque::new();
+    stack.push_back((start, 0));
+    let mut max_dist = 0;
+    dfs(&mut stack, &edges, &mut max_dist, &end, &mut seen);
+    max_dist
+}
+
+fn dfs(
+    stack: &mut VecDeque<(Point, usize)>,
+    edges: &HashMap<Point, Vec<Edge>>,
+    max_dist: &mut usize,
+    dest: &Point,
+    seen: &mut Vec<Vec<bool>>,
+) {
+    let Some((current, dist)) = stack.back().cloned() else {
+        return;
+    };
+
+    seen[current.row][current.col] = true;
+    if current == *dest {
+        *max_dist = std::cmp::max(*max_dist, dist);
+        seen[current.row][current.col] = false;
+    } else {
+        for edge in edges.get(&current).unwrap() {
+            let next = &edge.end;
+            let next_dist = dist + edge.dist;
+            if !seen[next.row][next.col] {
+                stack.push_back((*next, next_dist));
+                dfs(stack, edges, max_dist, dest, seen);
+                stack.pop_back();
+            }
+        }
+    }
+    seen[current.row][current.col] = false;
+}
 
 fn task_one(input: &[String]) -> usize {
-    let vec = input
-        .iter()
-        .map(|line| line.as_bytes().to_vec())
-        .collect::<Vec<_>>();
-
-    let start = (0, 1);
-    explore(&vec, start, 0, HashSet::new(), true).unwrap()
+    solve(input, false)
 }
 
 fn task_two(input: &[String]) -> usize {
-    let vec = input
-        .iter()
-        .map(|line| line.as_bytes().to_vec())
-        .collect::<Vec<_>>();
-
-    let start = (0, 1);
-    explore(&vec, start, 0, HashSet::new(), false).unwrap()
+    solve(input, true)
 }
 
 fn main() {
