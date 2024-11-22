@@ -7,6 +7,7 @@
 [![AoC 2021](https://img.shields.io/badge/2021-★_50-44cc11)](https://adventofcode.com/2021)
 [![AoC 2022](https://img.shields.io/badge/2022-★_50-44cc11)](https://adventofcode.com/2022)
 [![AoC 2023](https://img.shields.io/badge/2023-★_50-44cc11)](https://adventofcode.com/2023)
+[![AoC 2024](https://img.shields.io/badge/2024-★_2-9f9f9f)](https://adventofcode.com/2024)
 
 # Solutions for Advent of Code
 ### [2015](https://github.com/sivertjoe/Advent-of-Code/tree/master/2015)
@@ -18,6 +19,7 @@
 ### [2021](https://github.com/sivertjoe/Advent-of-Code/tree/master/2021)
 ### [2022](https://github.com/sivertjoe/Advent-of-Code/tree/master/2022)
 ### [2023](https://github.com/sivertjoe/Advent-of-Code/tree/master/2023)
+### [2024](https://github.com/sivertjoe/Advent-of-Code/tree/master/2024)
 
 ## `count.rs`
 Tallies the  performance of part one and two for each day and displays information about the overall performance.
