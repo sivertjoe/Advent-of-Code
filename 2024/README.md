@@ -3,5 +3,5 @@
 ## To compile a specific day just
 ```bash
 $ cd {day}
-$ cargo run --bin {day}
+$ cargo run
 ```
