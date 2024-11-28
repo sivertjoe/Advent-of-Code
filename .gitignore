@@ -1,7 +1,7 @@
-**/main
-**/test
+**/target/
+**/.bench/
+**/Cargo.lock
 **/input
+**/test
 **/.env
-**/.bench
-**/.answers
-count
+
