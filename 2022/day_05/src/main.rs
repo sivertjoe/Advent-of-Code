@@ -33,12 +33,12 @@ fn solve(input: &[String], reverse: bool) -> String
 
 fn task_one(input: &[String]) -> String
 {
-    solve(input, false)
+    solve(input, true)
 }
 
 fn task_two(input: &[String]) -> String
 {
-    solve(input, true)
+    solve(input, false)
 }
 
 fn main()
