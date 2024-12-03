@@ -3,12 +3,12 @@ use regex::Regex;
 fn mul(s: regex::Match<'_>) -> usize {
     let s = s.as_str();
     let s = s.replace("mul(", "");
-    let s = s.replace(")", "");
+    let s = s.replace(')', "");
     let (fst, snd) = s.split_once(',').unwrap();
     fst.parse::<usize>().unwrap() * snd.parse::<usize>().unwrap()
 }
 
-const MUL: &'static str = r"(mul\((\d+),(\d+)\))";
+const MUL: &str = r"(mul\((\d+),(\d+)\))";
 
 fn task_one(input: &[String]) -> usize {
     let re = Regex::new(MUL).unwrap();
@@ -21,8 +21,8 @@ fn task_one(input: &[String]) -> usize {
     sum
 }
 
-const DO: &'static str = r"do\(\)";
-const DONT: &'static str = r"don't\(\)";
+const DO: &str = r"do\(\)";
+const DONT: &str = r"don't\(\)";
 
 fn task_two(input: &[String]) -> usize {
     let re = Regex::new(&format!("{MUL}|{DO}|{DONT}")).unwrap();
