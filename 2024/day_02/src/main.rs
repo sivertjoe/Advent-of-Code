@@ -31,17 +31,11 @@ fn is_safe2(nums: Vec<usize>) -> bool {
 }
 
 fn task_one(input: &[String]) -> usize {
-    transform(input).into_iter().filter(|v| is_safe(v)).count()
+    transform(input).filter(|v| is_safe(v)).count()
 }
 
 fn task_two(input: &[String]) -> usize {
-    let mut count = 0;
-    for v in transform(input) {
-        if is_safe2(v) {
-            count += 1;
-        }
-    }
-    count
+    transform(input).filter(|v| is_safe2(v.clone())).count()
 }
 
 fn main() {
