@@ -1,39 +1,40 @@
 use regex::Regex;
 
-fn parse_mul(s: &str) -> (usize, usize) {
-    let s = s.to_string();
+fn mul(s: regex::Match<'_>) -> usize {
+    let s = s.as_str();
     let s = s.replace("mul(", "");
     let s = s.replace(")", "");
     let (fst, snd) = s.split_once(',').unwrap();
-    (fst.parse::<usize>().unwrap(), snd.parse::<usize>().unwrap())
+    fst.parse::<usize>().unwrap() * snd.parse::<usize>().unwrap()
 }
 
+const MUL: &'static str = r"(mul\((\d+),(\d+)\))";
+
 fn task_one(input: &[String]) -> usize {
-    let re = Regex::new(r"(mul\((\d+),(\d+)\))").unwrap();
+    let re = Regex::new(MUL).unwrap();
     let mut sum = 0;
     for line in input {
         for cap in re.find_iter(line) {
-            let res = parse_mul(cap.as_str());
-            sum += res.0 * res.1;
+            sum += mul(cap);
         }
     }
     sum
 }
 
+const DO: &'static str = r"do\(\)";
+const DONT: &'static str = r"don't\(\)";
+
 fn task_two(input: &[String]) -> usize {
-    let re = Regex::new(r"(mul\(\d*,\d*\))|do\(\)|don't\(\)").unwrap();
+    let re = Regex::new(&format!("{MUL}|{DO}|{DONT}")).unwrap();
     let mut sum = 0;
     let mut r#do = true;
     for line in input {
         for cap in re.find_iter(line) {
-            match (cap.as_str(), r#do) {
-                ("do()", _) => r#do = true,
-                ("don't()", _) => r#do = false,
-                (cap, true) => {
-                    let res = parse_mul(cap);
-                    sum += res.0 * res.1;
-                }
-                (_cap, false) => {}
+            match cap.as_str() {
+                "do()" => r#do = true,
+                "don't()" => r#do = false,
+                _ if r#do => sum += mul(cap),
+                _ => {}
             };
         }
     }
