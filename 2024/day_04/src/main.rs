@@ -1,88 +1,88 @@
-use std::collections::*;
-
-fn task_one(input: &[String]) -> usize {
-    let vec: Vec<Vec<char>> = input.iter().map(|line| line.chars().collect()).collect();
-
-    let mut sum = 0;
+fn next(vec: &[Vec<char>], pos: (usize, usize), inc: (isize, isize)) -> Option<(usize, usize)> {
     let y_max = vec.len();
     let x_max = vec[0].len();
 
-    // horizontal f/b
-    for y in 0..y_max {
-        sum += check(&vec, (y as _, 0), (0, 1));
-        sum += check(&vec, (y as _, (x_max - 1) as isize), (0, -1));
-    }
+    let next = (pos.0 as isize + inc.0, pos.1 as isize + inc.1);
 
-    // vertical f/b
-    for x in 0..x_max {
-        sum += check(&vec, (0, x as _), (1, 0));
-        sum += check(&vec, ((y_max - 1) as isize, x as _), (-1, 0));
-    }
-
-    // diagonal
-    for y in 0..y_max {
-        sum += check(&vec, (y as _, 0), (1, -1));
-        sum += check(&vec, (y as _, 0), (1, 1));
-
-        sum += check(&vec, ((y_max - 1) as _, 0), (-1, 1));
-        sum += check(&vec, ((y_max - 1) as _, 0), (-1, -1));
-    }
-
-    sum
-}
-
-fn next(vec: &Vec<Vec<char>>, pos: (isize, isize), inc: (isize, isize)) -> Option<(usize, usize)> {
-    let y_max = vec.len();
-    let x_max = vec[0].len();
-
-    let next = (pos.0 + inc.0, pos.1 + inc.1);
-
-    if next.0 >= 0 && (next.0 as usize) < y_max && next.1 >= 0 && (next.1 as usize) < x_max {
+    if next.0 >= 0 && next.0 < y_max as isize && next.1 >= 0 && next.1 < x_max as isize {
         Some((next.0 as usize, next.1 as usize))
     } else {
         None
     }
 }
 
-fn check(vec: &Vec<Vec<char>>, pos: (isize, isize), inc: (isize, isize)) -> usize {
-    let mut total = 0;
-
-    let word = vec!['X', 'M', 'A', 'S'];
-    let rword = vec!['S', 'A', 'M', 'X'];
-    let mut i = 0;
-    let mut ri = 0;
-
-    if vec[pos.0 as usize][pos.1 as usize] == word[i] {
-        i += 1;
-    }
-    if vec[pos.0 as usize][pos.1 as usize] == rword[ri] {
-        ri += 1;
-    }
-
+fn check(vec: &[Vec<char>], pos: (usize, usize), inc: (isize, isize)) -> bool {
     let mut pos = pos;
-    while let Some((y, x)) = next(vec, pos, inc) {
-        if vec[y][x] == word[i] {
-            i += 1;
+    for ch in ['M', 'A', 'S'].into_iter() {
+        let Some(new) = next(vec, pos, inc) else {
+            return false;
+        };
+        if vec[new.0][new.1] != ch {
+            return false;
         }
-        if vec[y][x] == rword[ri] {
-            ri += 1;
-        }
-        if ri == 4 {
-            ri = 0;
-            total += 1;
-        }
-        if i == 4 {
-            i = 0;
-            total += 1;
-        }
-        pos = (y as _, x as _);
+        pos = new;
+    }
+    true
+}
+
+fn check2(vec: &[Vec<char>], y: usize, x: usize) -> bool {
+    let diag = format!("{}{}{}", vec[y][x], vec[y + 1][x + 1], vec[y + 2][x + 2]);
+    if diag != "MAS" && diag != "SAM" {
+        return false;
     }
 
-    total
+    let diag = format!("{}{}{}", vec[y][x + 2], vec[y + 1][x + 1], vec[y + 2][x]);
+    if !(diag == "MAS" || diag == "SAM") {
+        return false;
+    }
+
+    true
+}
+
+fn task_one(input: &[String]) -> usize {
+    let vec: Vec<Vec<char>> = input.iter().map(|line| line.chars().collect()).collect();
+
+    let xs: Vec<_> = vec
+        .iter()
+        .enumerate()
+        .flat_map(|(y, vec)| {
+            vec.iter()
+                .enumerate()
+                .filter_map(move |(x, ch)| (*ch == 'X').then_some((y, x)))
+        })
+        .collect();
+
+    let mut sum = 0;
+    let dirs = [
+        (0, 1),
+        (0, -1),
+        (1, 0),
+        (-1, 0),
+        (1, 1),
+        (1, -1),
+        (-1, 1),
+        (-1, -1),
+    ];
+    for x in xs {
+        sum += dirs.iter().filter(|dir| check(&vec, x, **dir)).count();
+    }
+
+    sum
 }
 
 fn task_two(input: &[String]) -> usize {
-    unimplemented!()
+    let vec: Vec<Vec<char>> = input.iter().map(|line| line.chars().collect()).collect();
+    let mut sum = 0;
+
+    for y in 0..vec.len() - 2 {
+        for x in 0..vec[0].len() - 2 {
+            if check2(&vec, y, x) {
+                sum += 1;
+            }
+        }
+    }
+
+    sum
 }
 
 fn main() {
