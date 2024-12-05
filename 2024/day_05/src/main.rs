@@ -2,7 +2,7 @@ use std::collections::*;
 
 fn parse(input: &[String]) -> (Vec<Vec<usize>>, HashMap<usize, Vec<usize>>) {
     let mut map: HashMap<usize, Vec<usize>> = HashMap::new();
-    let mut updates = Vec::new();
+    let mut vec = Vec::new();
     let mut b = true;
     for line in input {
         if line.is_empty() {
@@ -19,31 +19,17 @@ fn parse(input: &[String]) -> (Vec<Vec<usize>>, HashMap<usize, Vec<usize>>) {
                 .split(',')
                 .map(|num| num.parse::<usize>().unwrap())
                 .collect::<Vec<_>>();
-            updates.push(nums);
+            vec.push(nums);
         }
     }
 
-    (updates, map)
+    (vec, map)
 }
 
-fn task_one(input: &[String]) -> usize {
-    let (updates, nums) = parse(input);
-
-    updates
-        .into_iter()
-        .filter(|update| verify_update(update, &nums))
-        .map(|update| update[update.len() / 2])
-        .sum()
-}
-
-fn verify_update(update: &Vec<usize>, map: &HashMap<usize, Vec<usize>>) -> bool {
-    for (i, num) in update.into_iter().enumerate() {
+fn verify_update(update: &[usize], map: &HashMap<usize, Vec<usize>>) -> bool {
+    for (i, num) in update.iter().enumerate() {
         if let Some(elems) = map.get(num) {
-            if update
-                .into_iter()
-                .enumerate()
-                .any(|(ii, elem)| elems.contains(elem) && ii < i)
-            {
+            if update[..i].iter().any(|elem| elems.contains(elem)) {
                 return false;
             }
         }
@@ -52,31 +38,41 @@ fn verify_update(update: &Vec<usize>, map: &HashMap<usize, Vec<usize>>) -> bool 
 }
 
 fn make_correct(vec: Vec<usize>, map: &HashMap<usize, Vec<usize>>) -> Vec<usize> {
-    let mut es = vec
+    let mut indexed_counts = vec
         .iter()
         .enumerate()
         .map(|(i, n)| {
-            (
-                i,
-                map.get(n)
-                    .map(|v| v.iter().filter(|elem| vec.contains(&elem)).count())
-                    .unwrap_or(0),
-            )
+            let count = map
+                .get(n)
+                .map(|elems| elems.iter().filter(|elem| vec.contains(elem)).count())
+                .unwrap_or(0);
+            (i, count)
         })
         .collect::<Vec<_>>();
-    es.sort_by_key(|k| k.1);
-    let vvec = es.iter().map(|(i, _c)| vec[*i]).rev().collect();
 
-    vvec
+    use std::cmp::Reverse;
+    indexed_counts.sort_by_key(|k| Reverse(k.1));
+
+    indexed_counts.into_iter().map(|(i, _)| vec[i]).collect()
 }
 
-fn task_two(input: &[String]) -> usize {
-    let (updates, nums) = parse(input);
+fn task_one(input: &[String]) -> usize {
+    let (updates, rules) = parse(input);
 
     updates
         .into_iter()
-        .filter(|update| !verify_update(update, &nums))
-        .map(|update| make_correct(update, &nums))
+        .filter(|update| verify_update(update, &rules))
+        .map(|update| update[update.len() / 2])
+        .sum()
+}
+
+fn task_two(input: &[String]) -> usize {
+    let (updates, rules) = parse(input);
+
+    updates
+        .into_iter()
+        .filter(|update| !verify_update(update, &rules))
+        .map(|update| make_correct(update, &rules))
         .map(|update| update[update.len() / 2])
         .sum()
 }
