@@ -1,79 +1,50 @@
 use std::collections::*;
 
 fn parse(input: &[String]) -> (Vec<Vec<usize>>, HashMap<usize, Vec<usize>>) {
-    let mut map: HashMap<usize, Vec<usize>> = HashMap::new();
-    let mut vec = Vec::new();
-    let mut b = true;
-    for line in input {
-        if line.is_empty() {
-            b = false;
-            continue;
-        }
-        if b {
-            let (a, b) = line.split_once('|').unwrap();
+    let num = |s: &str| s.parse::<usize>().unwrap();
+    let mut iter = input.split(String::is_empty);
 
-            let num = (a.parse::<usize>().unwrap(), b.parse::<usize>().unwrap());
-            map.entry(num.0).or_default().push(num.1);
-        } else {
-            let nums = line
-                .split(',')
-                .map(|num| num.parse::<usize>().unwrap())
-                .collect::<Vec<_>>();
-            vec.push(nums);
-        }
+    let mut map: HashMap<usize, Vec<usize>> = HashMap::new();
+    for line in iter.next().unwrap() {
+        let (k, v) = line.split_once('|').map(|(k, v)| (num(k), num(v))).unwrap();
+        map.entry(k).or_default().push(v);
+    }
+
+    let mut vec = Vec::new();
+    for line in iter.next().unwrap() {
+        let update = line.split(',').map(num).collect();
+        vec.push(update);
     }
 
     (vec, map)
 }
 
-fn verify_update(update: &[usize], map: &HashMap<usize, Vec<usize>>) -> bool {
-    for (i, num) in update.iter().enumerate() {
-        if let Some(elems) = map.get(num) {
-            if update[..i].iter().any(|elem| elems.contains(elem)) {
-                return false;
-            }
-        }
-    }
-    true
-}
-
-fn make_correct(vec: Vec<usize>, map: &HashMap<usize, Vec<usize>>) -> Vec<usize> {
-    let mut indexed_counts = vec
-        .iter()
-        .enumerate()
-        .map(|(i, n)| {
-            let count = map
-                .get(n)
-                .map(|elems| elems.iter().filter(|elem| vec.contains(elem)).count())
-                .unwrap_or(0);
-            (i, count)
-        })
-        .collect::<Vec<_>>();
-
-    use std::cmp::Reverse;
-    indexed_counts.sort_by_key(|k| Reverse(k.1));
-
-    indexed_counts.into_iter().map(|(i, _)| vec[i]).collect()
-}
-
 fn task_one(input: &[String]) -> usize {
-    let (updates, rules) = parse(input);
+    let (pages, rules) = parse(input);
 
-    updates
+    pages
         .into_iter()
-        .filter(|update| verify_update(update, &rules))
-        .map(|update| update[update.len() / 2])
+        .filter(|page| page.is_sorted_by(|a, b| rules[a].contains(b)))
+        .map(|page| page[page.len() / 2])
         .sum()
 }
 
 fn task_two(input: &[String]) -> usize {
-    let (updates, rules) = parse(input);
-
-    updates
+    use std::cmp::Ordering;
+    let (pages, rules) = parse(input);
+    pages
         .into_iter()
-        .filter(|update| !verify_update(update, &rules))
-        .map(|update| make_correct(update, &rules))
-        .map(|update| update[update.len() / 2])
+        .filter(|page| !page.is_sorted_by(|a, b| rules[a].contains(b)))
+        .map(|mut page| {
+            page.sort_by(|a, b| {
+                if rules[a].contains(b) {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
+            });
+            page[page.len() / 2]
+        })
         .sum()
 }
 
