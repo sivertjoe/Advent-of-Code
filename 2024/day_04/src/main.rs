@@ -26,13 +26,20 @@ fn check(vec: &[Vec<char>], pos: (usize, usize), inc: (isize, isize)) -> bool {
 }
 
 fn check2(vec: &[Vec<char>], y: usize, x: usize) -> bool {
-    let diag = format!("{}{}{}", vec[y][x], vec[y + 1][x + 1], vec[y + 2][x + 2]);
-    if diag != "MAS" && diag != "SAM" {
+    let mut s = String::with_capacity(3);
+    s.push(vec[y][x]);
+    s.push(vec[y + 1][x + 1]);
+    s.push(vec[y + 2][x + 2]);
+
+    if s != "MAS" && s != "SAM" {
         return false;
     }
 
-    let diag = format!("{}{}{}", vec[y][x + 2], vec[y + 1][x + 1], vec[y + 2][x]);
-    if !(diag == "MAS" || diag == "SAM") {
+    s.clear();
+    s.push(vec[y][x + 2]);
+    s.push(vec[y + 1][x + 1]);
+    s.push(vec[y + 2][x]);
+    if s != "MAS" && s != "SAM" {
         return false;
     }
 
