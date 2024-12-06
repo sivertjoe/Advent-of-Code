@@ -1,4 +1,5 @@
-use std::collections::*;
+use std::collections::HashMap;
+type HashSet<V> = fxhash::FxHashSet<V>;
 
 fn p(n: (isize, isize)) -> (isize, isize) {
     match n {
@@ -10,125 +11,31 @@ fn p(n: (isize, isize)) -> (isize, isize) {
     }
 }
 
-fn get_char(inc: (isize, isize)) -> char {
-    match inc {
-        (-1, 0) => '^',
-        (0, 1) => '>',
-        (1, 0) => 'v',
-        (0, -1) => '<',
-        _ => unreachable!(),
-    }
-}
-
-fn print_path(map: &HashMap<(isize, isize), char>, pos: (isize, isize), inc: (isize, isize)) {
-    let max_y = map.keys().map(|(y, x)| *y).max().unwrap();
-    let max_x = map.keys().map(|(y, x)| *x).max().unwrap();
-
-    print!(" ");
-    for i in 0..=max_x {
-        print!("{i}");
-    }
-    println!();
-    for y in 0..=max_y {
-        print!("{y}");
-        for x in 0..=max_x {
-            if pos == (y, x) {
-                print!("{}", get_char(inc));
-            } else {
-                print!("{}", map.get(&(y, x)).unwrap());
-            }
-        }
-        println!();
-    }
-    println!();
-
-    let mut _buf = String::new();
-    let _ = std::io::stdin().read_line(&mut _buf);
-}
-
-fn next(pos: (isize, isize), inc: (isize, isize)) -> (isize, isize) {
-    (pos.0 + inc.0, pos.1 + inc.1)
-}
-
-fn will_lead_to_loop(
-    pos: (isize, isize),
-    inc: (isize, isize),
-    map: &HashMap<(isize, isize), char>,
-    seen: &HashSet<((isize, isize), (isize, isize))>,
-    ans: &HashSet<(isize, isize)>,
-) -> Option<(isize, isize)> {
-    /*let s = match ninc {
-        (-1, 0) | (1, 0) => seen
-            .iter()
-            .find(|(_pos, _inc)| *_inc == ninc && _pos.0 == pos.0),
-        (0, -1) | (0, 1) => seen
-            .iter()
-            .find(|(_pos, _inc)| *_inc == ninc && _pos.1 == pos.1),
-
-        _ => unreachable!(),
+fn next(pos: (usize, usize), inc: (isize, isize), vec: &[Vec<char>]) -> Option<(usize, usize)> {
+    let Some(y) = pos.0.checked_add_signed(inc.0) else {
+        return None;
     };
-    if let Some(maybe) = s {
-        if !ans.contains(&maybe.0) {
-            Some(maybe.0)
-        } else {
-            None
-        }
-    } else {
-        None
-    }*/
+    let Some(x) = pos.1.checked_add_signed(inc.1) else {
+        return None;
+    };
 
-    let opos = pos;
-    let ninc = p(inc);
-    let mut pos = pos;
-    loop {
-        let next = next(pos, ninc);
-        match map.get(&next) {
-            None => {
-                return None;
-            }
-            Some(ch) => match ch {
-                '#' => {
-                    return None;
-                }
-                '.' => {
-                    if seen.contains(&(pos, ninc)) {
-                        return Some(pos);
-                    }
-                    pos = next;
-                }
-                _ => unreachable!(),
-            },
-        }
-    }
+    (y < vec.len() && x < vec[0].len()).then_some((y, x))
 }
 
-fn explore_map(
-    map: &HashMap<(isize, isize), char>,
-    pos: (isize, isize),
-    inc: (isize, isize),
-) -> Option<usize> {
-    let mut seen = HashSet::new();
+fn explore_map(vec: &[Vec<char>], pos: (usize, usize), inc: (isize, isize)) -> Option<usize> {
+    let mut seen = HashSet::default();
 
     let mut pos = pos;
     let mut inc = inc;
 
     seen.insert((pos, inc));
 
-    loop {
-        let next = next(pos, inc);
-        match map.get(&next) {
-            None => {
-                return Some(
-                    seen.into_iter()
-                        .map(|(pos, _inc)| pos)
-                        .collect::<HashSet<_>>()
-                        .len(),
-                )
-            }
-            Some(ch) if *ch == '#' => {
+    while let Some(next @ (y, x)) = next(pos, inc, vec) {
+        match vec[y][x] {
+            '#' => {
                 inc = p(inc);
             }
-            Some(ch) if *ch == '.' => {
+            '.' => {
                 // loop
                 if !seen.insert((next, inc)) {
                     return None;
@@ -139,45 +46,50 @@ fn explore_map(
             _ => unreachable!(),
         }
     }
+
+    Some(
+        seen.into_iter()
+            .map(|(pos, _inc)| pos)
+            .collect::<HashSet<_>>()
+            .len(),
+    )
 }
 
 fn task_one(input: &[String]) -> usize {
-    let mut map = HashMap::new();
-    for (y, line) in input.iter().enumerate() {
-        for (x, ch) in line.chars().enumerate() {
-            map.insert((y as isize, x as isize), ch);
-        }
-    }
-    let pos = { *map.iter().find(|(_k, v)| **v == '^').map(|e| e.0).unwrap() };
-    let inc = (-1, 0);
-    *map.get_mut(&pos).unwrap() = '.';
+    let mut vec: Vec<Vec<char>> = input.iter().map(|line| line.chars().collect()).collect();
 
-    explore_map(&map, pos, inc).unwrap()
+    let pos = vec.iter().flatten().position(|ch| *ch == '^').unwrap();
+
+    let pos @ (y, x) = (pos / vec.len(), pos % vec.len());
+    let inc = (-1, 0);
+    vec[y][x] = '.';
+
+    explore_map(&vec, pos, inc).unwrap()
 }
 
 fn task_two(input: &[String]) -> usize {
-    let mut map = HashMap::new();
-    for (y, line) in input.iter().enumerate() {
-        for (x, ch) in line.chars().enumerate() {
-            map.insert((y as isize, x as isize), ch);
-        }
-    }
-    let pos = { *map.iter().find(|(_k, v)| **v == '^').map(|e| e.0).unwrap() };
-    let inc = (-1, 0);
-    *map.get_mut(&pos).unwrap() = '.';
+    let mut vec: Vec<Vec<char>> = input.iter().map(|line| line.chars().collect()).collect();
 
-    let tiles = map
+    let pos = vec.iter().flatten().position(|ch| *ch == '^').unwrap();
+
+    let pos @ (y, x) = (pos / vec.len(), pos % vec.len());
+    let inc = (-1, 0);
+    vec[y][x] = '.';
+
+    let tiles = vec
         .iter()
-        .filter_map(|(k, v)| (*v == '.').then_some(*k))
+        .flatten()
+        .enumerate()
+        .flat_map(|(pos, ch)| (*ch == '.').then_some((pos / vec.len(), pos % vec.len())))
         .collect::<Vec<_>>();
 
     let mut sum = 0;
-    for tile in tiles {
-        *map.get_mut(&tile).unwrap() = '#';
-        if explore_map(&map, pos, inc).is_none() {
+    for (y, x) in tiles {
+        vec[y][x] = '#';
+        if explore_map(&vec, pos, inc).is_none() {
             sum += 1;
         }
-        *map.get_mut(&tile).unwrap() = '.';
+        vec[y][x] = '.';
     }
     sum
 }
