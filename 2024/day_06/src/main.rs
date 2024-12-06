@@ -1,7 +1,6 @@
-use std::collections::HashMap;
 type HashSet<V> = fxhash::FxHashSet<V>;
 
-fn p(n: (isize, isize)) -> (isize, isize) {
+fn rotate(n: (isize, isize)) -> (isize, isize) {
     match n {
         (-1, 0) => (0, 1),
         (0, 1) => (1, 0),
@@ -11,7 +10,7 @@ fn p(n: (isize, isize)) -> (isize, isize) {
     }
 }
 
-fn next(pos: (usize, usize), inc: (isize, isize), vec: &[Vec<char>]) -> Option<(usize, usize)> {
+fn next(pos: (usize, usize), inc: (isize, isize), vec: &[Vec<u8>]) -> Option<(usize, usize)> {
     let Some(y) = pos.0.checked_add_signed(inc.0) else {
         return None;
     };
@@ -22,7 +21,12 @@ fn next(pos: (usize, usize), inc: (isize, isize), vec: &[Vec<char>]) -> Option<(
     (y < vec.len() && x < vec[0].len()).then_some((y, x))
 }
 
-fn explore_map(vec: &[Vec<char>], pos: (usize, usize), inc: (isize, isize)) -> Option<usize> {
+fn explore_map(
+    vec: &[Vec<u8>],
+    pos: (usize, usize),
+    inc: (isize, isize),
+    brick_pos: Option<(usize, usize)>,
+) -> Option<usize> {
     let mut seen = HashSet::default();
 
     let mut pos = pos;
@@ -32,10 +36,13 @@ fn explore_map(vec: &[Vec<char>], pos: (usize, usize), inc: (isize, isize)) -> O
 
     while let Some(next @ (y, x)) = next(pos, inc, vec) {
         match vec[y][x] {
-            '#' => {
-                inc = p(inc);
+            b'#' => {
+                inc = rotate(inc);
             }
-            '.' => {
+            _ch if Some(next) == brick_pos => {
+                inc = rotate(inc);
+            }
+            b'.' => {
                 // loop
                 if !seen.insert((next, inc)) {
                     return None;
@@ -56,42 +63,38 @@ fn explore_map(vec: &[Vec<char>], pos: (usize, usize), inc: (isize, isize)) -> O
 }
 
 fn task_one(input: &[String]) -> usize {
-    let mut vec: Vec<Vec<char>> = input.iter().map(|line| line.chars().collect()).collect();
+    let mut vec: Vec<Vec<u8>> = input.iter().map(|line| line.as_bytes().to_vec()).collect();
 
-    let pos = vec.iter().flatten().position(|ch| *ch == '^').unwrap();
+    let pos = vec.iter().flatten().position(|ch| *ch == b'^').unwrap();
 
     let pos @ (y, x) = (pos / vec.len(), pos % vec.len());
     let inc = (-1, 0);
-    vec[y][x] = '.';
+    vec[y][x] = b'.';
 
-    explore_map(&vec, pos, inc).unwrap()
+    explore_map(&vec, pos, inc, None).unwrap()
 }
 
 fn task_two(input: &[String]) -> usize {
-    let mut vec: Vec<Vec<char>> = input.iter().map(|line| line.chars().collect()).collect();
+    use rayon::prelude::*;
+    let mut vec: Vec<Vec<u8>> = input.iter().map(|line| line.as_bytes().to_vec()).collect();
 
-    let pos = vec.iter().flatten().position(|ch| *ch == '^').unwrap();
+    let pos = vec.iter().flatten().position(|ch| *ch == b'^').unwrap();
 
     let pos @ (y, x) = (pos / vec.len(), pos % vec.len());
     let inc = (-1, 0);
-    vec[y][x] = '.';
+    vec[y][x] = b'.';
 
     let tiles = vec
         .iter()
         .flatten()
         .enumerate()
-        .flat_map(|(pos, ch)| (*ch == '.').then_some((pos / vec.len(), pos % vec.len())))
+        .flat_map(|(pos, ch)| (*ch == b'.').then_some((pos / vec.len(), pos % vec.len())))
         .collect::<Vec<_>>();
 
-    let mut sum = 0;
-    for (y, x) in tiles {
-        vec[y][x] = '#';
-        if explore_map(&vec, pos, inc).is_none() {
-            sum += 1;
-        }
-        vec[y][x] = '.';
-    }
-    sum
+    tiles
+        .into_par_iter()
+        .filter(|brick| explore_map(&vec, pos, inc, Some(*brick)).is_none())
+        .count()
 }
 fn main() {
     let input = read_input(get_input_file());
