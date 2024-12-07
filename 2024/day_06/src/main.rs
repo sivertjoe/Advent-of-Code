@@ -26,7 +26,7 @@ fn explore_map(
     pos: (usize, usize),
     inc: (isize, isize),
     brick_pos: Option<(usize, usize)>,
-) -> Option<usize> {
+) -> Option<HashSet<(usize, usize)>> {
     let mut seen = HashSet::default();
 
     let mut pos = pos;
@@ -57,8 +57,7 @@ fn explore_map(
     Some(
         seen.into_iter()
             .map(|(pos, _inc)| pos)
-            .collect::<HashSet<_>>()
-            .len(),
+            .collect::<HashSet<_>>(),
     )
 }
 
@@ -71,7 +70,7 @@ fn task_one(input: &[String]) -> usize {
     let inc = (-1, 0);
     vec[y][x] = b'.';
 
-    explore_map(&vec, pos, inc, None).unwrap()
+    explore_map(&vec, pos, inc, None).unwrap().len()
 }
 
 fn task_two(input: &[String]) -> usize {
@@ -84,12 +83,8 @@ fn task_two(input: &[String]) -> usize {
     let inc = (-1, 0);
     vec[y][x] = b'.';
 
-    let tiles = vec
-        .iter()
-        .flatten()
-        .enumerate()
-        .flat_map(|(pos, ch)| (*ch == b'.').then_some((pos / vec.len(), pos % vec.len())))
-        .collect::<Vec<_>>();
+    let mut tiles = explore_map(&vec, pos, inc, None).unwrap();
+    tiles.retain(|ppos| pos != *ppos);
 
     tiles
         .into_par_iter()
