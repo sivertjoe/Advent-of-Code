@@ -2,207 +2,71 @@ use std::collections::*;
 
 type P = (isize, isize);
 
-fn manhatten_distance(a: P, b: P) -> usize {
-    a.0.abs_diff(b.0) + a.1.abs_diff(b.1)
-}
-
-/*
-    fn in_line(a: P, b: P) -> Option<((isize, isize), (isize, isize))> {
-    if a == b {
-        return None;
-    }
-    let res = if a.0 == b.0 {
-        let dist = a.1.abs_diff(b.1) as isize;
-        if a.1 > b.1 {
-            Some(((a.0, a.1 + dist), (b.0, b.1 - dist)))
-        } else {
-            Some(((a.0, a.1 - dist), (b.0, b.1 + dist)))
-        }
-    } else if a.1 == b.1 {
-        let dist = a.0.abs_diff(b.0) as isize;
-        if a.0 > b.0 {
-            Some(((a.0 + dist, a.1), (b.0 - dist, b.1)))
-        } else {
-            Some(((a.0 - dist, a.1), (b.0 + dist, b.1)))
-        }
-    } else if a.0.abs_diff(b.0) == a.1.abs_diff(b.1) {
-        let disty = a.0.abs_diff(b.0) as isize;
-        let distx = a.1.abs_diff(b.1) as isize;
-
-        if a.0 < b.0 && a.1 < b.1 {
-            Some(((a.0 - disty, a.1 - distx), (b.0 + disty, b.1 + distx)))
-        } else if a.0 < b.0 && a.1 > b.1 {
-            Some(((a.0 - disty, a.1 + distx), (b.0 + disty, b.1 - distx)))
-        } else if a.0 > b.0 && a.1 < b.1 {
-            Some(((a.0 + disty, a.1 - distx), (b.0 - disty, b.1 + distx)))
-        } else if a.0 > b.0 && a.1 > b.1 {
-            Some(((a.0 + disty, a.1 + distx), (b.0 - disty, b.1 - distx)))
-        } else {
-            unreachable!()
-        }
-    } else {
-        None
-    };
-    res
-}*/
-
-fn in_line(a: P, b: P) -> Option<((isize, isize), (isize, isize))> {
-    if a == b {
-        return None;
-    }
-    let disty = a.0.abs_diff(b.0) as isize;
-    let distx = a.1.abs_diff(b.1) as isize;
-
-    if a.0 < b.0 && a.1 < b.1 {
-        Some(((a.0 - disty, a.1 - distx), (b.0 + disty, b.1 + distx)))
-    } else if a.0 < b.0 && a.1 > b.1 {
-        Some(((a.0 - disty, a.1 + distx), (b.0 + disty, b.1 - distx)))
-    } else if a.0 > b.0 && a.1 < b.1 {
-        Some(((a.0 + disty, a.1 - distx), (b.0 - disty, b.1 + distx)))
-    } else if a.0 > b.0 && a.1 > b.1 {
-        Some(((a.0 + disty, a.1 + distx), (b.0 - disty, b.1 - distx)))
-    } else {
-        unreachable!()
-    }
-}
-
-fn print_map(map: &HashMap<(isize, isize), char>) {
-    let max_y = map.keys().map(|(y, _x)| y).max().unwrap();
-    let max_x = map.keys().map(|(_y, x)| x).max().unwrap();
-
-    for y in 0..=*max_y {
-        for x in 0..=*max_x {
-            if let Some(ch) = map.get(&(y, x)) {
-                print!("{}", ch);
-            } else {
-                print!(",");
-            }
-        }
-        println!();
-    }
-    println!();
-}
-
-fn task_one(input: &[String]) -> usize {
-    let mut map = HashMap::new();
-    for (y, line) in input.iter().enumerate() {
-        for (x, ch) in line.chars().enumerate() {
-            let y = y as isize;
-            let x = x as isize;
-            map.insert((y, x), ch);
-        }
-    }
-    //print_map(&map);
-
-    let mut set = HashSet::new();
-    for (pos, ch) in map.iter() {
-        for (p, c) in map.iter() {
-            if *ch != *c || *ch == '.' || *ch == '#' {
-                continue;
-            }
-
-            if let Some((a, b)) = in_line(*pos, *p) {
-                set.insert(a);
-                set.insert(b);
-            }
-        }
-    }
-
-    let max_y = *map.keys().map(|(y, _x)| y).max().unwrap();
-    let max_x = *map.keys().map(|(_y, x)| x).max().unwrap();
-
-    for (y, x) in set {
-        if y >= 0 && y <= max_y && x >= 0 && x <= max_x {
-            let elem = map.get_mut(&(y, x)).unwrap();
-            //if *elem == '.' || *elem == '#' {
-            *elem = 'x';
-            //}
-        }
-    }
-    //print_map(&map);
-
-    map.values().filter(|ch| **ch == 'x').count()
-}
-
-fn in_line2(a: P, b: P, i: isize) -> Option<((isize, isize), (isize, isize))> {
-    if a == b {
-        println!("WHAT");
-        return None;
-    }
+fn in_line2(a: P, b: P, i: isize) -> (P, P) {
     let disty = i * (a.0.abs_diff(b.0) as isize);
     let distx = i * (a.1.abs_diff(b.1) as isize);
 
-    if a.0 < b.0 && a.1 < b.1 {
-        Some(((a.0 - disty, a.1 - distx), (b.0 + disty, b.1 + distx)))
-    } else if a.0 < b.0 && a.1 > b.1 {
-        Some(((a.0 - disty, a.1 + distx), (b.0 + disty, b.1 - distx)))
-    } else if a.0 > b.0 && a.1 < b.1 {
-        Some(((a.0 + disty, a.1 - distx), (b.0 - disty, b.1 + distx)))
-    } else if a.0 > b.0 && a.1 > b.1 {
-        Some(((a.0 + disty, a.1 + distx), (b.0 - disty, b.1 - distx)))
-    } else {
-        println!("??? {:?} {:?}", a, b);
-        None
-    }
+    let dy = (a.0 - b.0).signum();
+    let dx = (a.1 - b.1).signum();
+
+    (
+        (a.0 + dy * disty, a.1 + dx * distx),
+        (b.0 - dy * disty, b.1 - dx * distx),
+    )
 }
 
-fn run(map: HashMap<(isize, isize), char>) -> HashMap<(isize, isize), char> {
-    let mut map = map;
+fn solve(input: &[String], part_1: bool) -> usize {
+    let mut map = HashMap::new();
+    for (y, line) in input.iter().enumerate() {
+        for (x, ch) in line.chars().enumerate() {
+            if ch != '.' {
+                let y = y as isize;
+                let x = x as isize;
+                map.insert((y, x), ch);
+            }
+        }
+    }
+    let max = ((input.len() - 1) as _, (input[0].len() - 1) as _);
     let mut set = HashSet::new();
-    let max_y = *map.keys().map(|(y, _x)| y).max().unwrap();
-    let max_x = *map.keys().map(|(_y, x)| x).max().unwrap();
 
     for (pos, ch) in map.iter() {
         for (p, c) in map.iter() {
-            if *ch != *c || *ch == '.' || *ch == '#' || pos == p {
+            if *ch != *c || pos == p {
                 continue;
             }
 
             for i in 1.. {
-                let (a, b) = in_line2(*pos, *p, i).unwrap();
+                let (a, b) = in_line2(*pos, *p, i);
                 let mut fin = false;
-                if a.0 >= 0 && a.0 <= max_y && a.1 >= 0 && a.1 <= max_x {
-                    set.insert(a);
-                    fin = true;
-                }
-                if b.0 >= 0 && b.0 <= max_y && b.1 >= 0 && b.1 <= max_x {
-                    set.insert(b);
+
+                for p in [a, b]
+                    .into_iter()
+                    .filter(|p| p.0 >= 0 && p.0 <= max.0 && p.1 >= 0 && p.1 <= max.1)
+                {
+                    set.insert(p);
                     fin = true;
                 }
 
-                if !fin {
+                if part_1 || !fin {
                     break;
                 }
             }
         }
     }
 
-    for (y, x) in set {
-        if y >= 0 && y <= max_y && x >= 0 && x <= max_x {
-            let elem = map.get_mut(&(y, x)).unwrap();
-            //if *elem == '.' || *elem == '#' {
-            *elem = 'x';
-            //}
-        }
+    if part_1 {
+        set.len()
+    } else {
+        map.into_keys().collect::<HashSet<_>>().union(&set).count()
     }
-    //print_map(&map);
+}
 
-    map
+fn task_one(input: &[String]) -> usize {
+    solve(input, true)
 }
 
 fn task_two(input: &[String]) -> usize {
-    let mut map = HashMap::new();
-    for (y, line) in input.iter().enumerate() {
-        for (x, ch) in line.chars().enumerate() {
-            let y = y as isize;
-            let x = x as isize;
-            map.insert((y, x), ch);
-        }
-    }
-
-    map = run(map);
-
-    map.values().filter(|ch| **ch != '.').count()
+    solve(input, false)
 }
 
 fn main() {
