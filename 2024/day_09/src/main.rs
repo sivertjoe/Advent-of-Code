@@ -20,8 +20,8 @@ fn generate(input: &[String]) -> Vec<isize> {
 
 fn checksum(vec: &[isize]) -> usize {
     vec.into_iter()
-        .take_while(|n| **n != -1)
         .enumerate()
+        .filter(|(_i, n)| **n != -1)
         .map(|(i, n)| i * *n as usize)
         .sum()
 }
@@ -56,20 +56,114 @@ fn task_one(input: &[String]) -> usize {
     checksum(&vec)
 }
 
-fn find_next_empty_section(curr: usize, vec: &[isize]) -> (usize, usize) {
-    let i = curr + 1;
-    while i < vec.len() {
-        if vec[i] == -1 {}
+fn find_section(vec: &[isize]) -> Vec<(usize, usize)> {
+    let mut sec = Vec::new();
+
+    let mut i = 0;
+    let mut j = 0;
+
+    loop {
+        while j < vec.len() && vec[j] == vec[i] {
+            j += 1;
+        }
+        sec.push((i, j - 1));
+        i = j;
+
+        if j == vec.len() {
+            break;
+        }
+
+        while vec[i] == -1 {
+            i += 1;
+        }
+        j = i;
     }
 
-    let ii = i;
-    todo!()
+    sec
+}
+
+fn find_empty_sections(vec: &[isize]) -> Vec<(usize, usize)> {
+    let mut init = (0, 0);
+    let mut empty = vec![];
+
+    loop {
+        let next = find_next_empty_section(init, &vec);
+        if next.0 > next.1 {
+            break;
+        }
+        empty.push(next);
+        init = next;
+    }
+    empty
+}
+
+fn find_next_empty_section((i, ii): (usize, usize), vec: &[isize]) -> (usize, usize) {
+    let mut ni = ii;
+    // skip leftover -1
+    while ni < vec.len() && vec[ni] == -1 {
+        ni += 1;
+    }
+
+    while ni < vec.len() && vec[ni] != -1 {
+        ni += 1;
+    }
+
+    let mut nii = ni;
+    while nii < vec.len() && vec[nii] == -1 {
+        nii += 1;
+    }
+
+    nii -= 1;
+    (ni, nii)
+}
+
+fn print(vec: &[isize]) {
+    /*for i in 0..vec.len() {
+        print!("{}", i % 10);
+    }*/
+    println!();
+    for ch in vec {
+        if *ch == -1 {
+            print!(".");
+        } else {
+            let ch = (b'0' + (*ch as u8)) as char;
+            print!("{ch}");
+        }
+    }
+    println!();
 }
 
 fn task_two(input: &[String]) -> usize {
     let mut vec = generate(input);
 
-    0
+    let mut empty = find_empty_sections(&vec);
+    let mut secs = find_section(&vec);
+
+    while let Some(file) = secs.pop() {
+        if let Some(index) = empty.iter().position(|e| (e.1 - e.0) >= (file.1 - file.0)) {
+            let spot = &mut empty[index];
+            if spot.1 > file.0 {
+                continue;
+            }
+
+            let elem = vec[file.0];
+            for (fi, i) in (file.0..=file.1).zip(spot.0..=spot.1) {
+                vec[i] = elem;
+                vec[fi] = -1;
+            }
+            empty = find_empty_sections(&vec);
+        }
+    }
+    //print(&vec);
+    //println!("{:?}", secs);
+    //println!("{:?}", empty);
+
+    checksum(&vec)
+    /*vec.into_iter()
+    .enumerate()
+    .filter(|(_i, n)| **n != -1)
+    .map(|(i, n)| i * *n as usize)
+    .sum()*/
 }
 
 fn main() {
