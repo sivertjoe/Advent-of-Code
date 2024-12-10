@@ -139,14 +139,14 @@ fn task_two(input: &[String]) -> usize {
     let mut secs = find_section(&vec);
 
     let mut free = (0..10)
-        .map(|_| BinaryHeap::<Reverse<usize>>::new())
+        .map(|_| BTreeSet::<usize>::new())
         .collect::<Vec<_>>();
 
     let mut block = 0;
     for (i, ch) in input[0].chars().enumerate() {
         let b = ch.to_digit(10).unwrap() as usize;
         if b > 0 && i % 2 == 1 {
-            free[b].push(Reverse(block));
+            free[b].insert(block);
         }
 
         block += b;
@@ -159,22 +159,36 @@ fn task_two(input: &[String]) -> usize {
             .iter()
             .enumerate()
             .filter(|(i, _h)| *i >= size)
-            .filter_map(|(i, h)| h.peek().copied().map(|v| (i, v)))
-            .filter(|(i, idx)| idx.0 < file.0)
+            .filter_map(|(i, h)| h.first().copied().map(|v| (i, v)))
+            .filter(|(i, idx)| *idx < file.0)
             .min_by_key(|k| k.1)
         {
             let rem = i - size;
-            let spot = free[i].pop().unwrap();
+            let spot = free[i].pop_first().unwrap();
             for i in 0..size {
-                vec[spot.0 + i] = elem;
+                vec[spot + i] = elem;
                 vec[file.0 + i] = -1;
             }
 
             if rem > 0 {
-                free[rem].push(Reverse(spot.0 + size - rem + 1));
+                free[rem].insert(spot + size - rem + 1);
             }
 
-            free[size].push(Reverse(file.0));
+            let mut flag = false;
+            // try to join free sections
+            for i in 0..free.len() {
+                let idx = file.0 - i;
+                if free[i].remove(&idx) {
+                    flag = true;
+                    let new_size = size + i;
+                    free[new_size].insert(idx);
+                    break;
+                }
+            }
+            // TODO: WE HAVE MERGED BACKWARDS, WE NEED TO MERGE FORWARD AS WELL..
+            if !flag {
+                free[size].insert(file.0);
+            }
         }
     }
 
@@ -184,10 +198,10 @@ fn task_two(input: &[String]) -> usize {
     checksum(&vec)
 }
 
-fn print_free(free: &[BinaryHeap<Reverse<usize>>]) {
+fn print_free(free: &[BTreeSet<usize>]) {
     let vec = free
         .into_iter()
-        .map(|h| h.into_iter().map(|r| r.0).collect::<Vec<_>>())
+        .map(|h| h.into_iter().map(|r| r).collect::<Vec<_>>())
         .collect::<Vec<_>>();
     println!("{:?}", vec);
 }
