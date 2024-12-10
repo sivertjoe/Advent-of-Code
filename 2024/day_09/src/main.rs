@@ -1,3 +1,4 @@
+use std::cmp::Reverse;
 use std::collections::*;
 
 fn generate(input: &[String]) -> Vec<isize> {
@@ -135,35 +136,60 @@ fn print(vec: &[isize]) {
 
 fn task_two(input: &[String]) -> usize {
     let mut vec = generate(input);
-
-    let mut empty = find_empty_sections(&vec);
     let mut secs = find_section(&vec);
 
+    let mut free = (0..10)
+        .map(|_| BinaryHeap::<Reverse<usize>>::new())
+        .collect::<Vec<_>>();
+
+    let mut block = 0;
+    for (i, ch) in input[0].chars().enumerate() {
+        let b = ch.to_digit(10).unwrap() as usize;
+        if b > 0 && i % 2 == 1 {
+            free[b].push(Reverse(block));
+        }
+
+        block += b;
+    }
     while let Some(file) = secs.pop() {
-        if let Some(index) = empty.iter().position(|e| (e.1 - e.0) >= (file.1 - file.0)) {
-            let spot = &mut empty[index];
-            if spot.1 > file.0 {
-                continue;
+        let size = file.1 - file.0 + 1;
+        let elem = vec[file.0];
+
+        if let Some((i, _k)) = free
+            .iter()
+            .enumerate()
+            .filter(|(i, _h)| *i >= size)
+            .filter_map(|(i, h)| h.peek().copied().map(|v| (i, v)))
+            .filter(|(i, idx)| idx.0 < file.0)
+            .min_by_key(|k| k.1)
+        {
+            let rem = i - size;
+            let spot = free[i].pop().unwrap();
+            for i in 0..size {
+                vec[spot.0 + i] = elem;
+                vec[file.0 + i] = -1;
             }
 
-            let elem = vec[file.0];
-            for (fi, i) in (file.0..=file.1).zip(spot.0..=spot.1) {
-                vec[i] = elem;
-                vec[fi] = -1;
+            if rem > 0 {
+                free[rem].push(Reverse(spot.0 + size - rem + 1));
             }
-            empty = find_empty_sections(&vec);
+
+            free[size].push(Reverse(file.0));
         }
     }
-    //print(&vec);
-    //println!("{:?}", secs);
-    //println!("{:?}", empty);
+
+    print_free(&free);
+    print(&vec);
 
     checksum(&vec)
-    /*vec.into_iter()
-    .enumerate()
-    .filter(|(_i, n)| **n != -1)
-    .map(|(i, n)| i * *n as usize)
-    .sum()*/
+}
+
+fn print_free(free: &[BinaryHeap<Reverse<usize>>]) {
+    let vec = free
+        .into_iter()
+        .map(|h| h.into_iter().map(|r| r.0).collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+    println!("{:?}", vec);
 }
 
 fn main() {
