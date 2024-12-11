@@ -1,81 +1,54 @@
 use std::collections::*;
 
-#[derive(Clone, Copy)]
-struct Stone {
-    value: u32,
-    left: Option<u32>,
-    right: Option<u32>,
-}
+fn split_number(num: usize) -> (usize, usize) {
+    let num_digits = (num as f64).log10() as usize + 1;
+    let half_digits = num_digits / 2;
 
-fn split_number(num: u32) -> (u32, u32) {
-    let num_str = num.to_string();
-    let len = num_str.len();
+    let divisor = 10_usize.pow(half_digits as u32);
 
-    let mid = len / 2;
-
-    let first_half = &num_str[..mid];
-    let second_half = &num_str[mid..];
-
-    let left = first_half.parse::<u32>().unwrap();
-    let right = second_half.parse::<u32>().unwrap();
+    let left = num / divisor;
+    let right = num % divisor;
 
     (left, right)
 }
-fn task_one(input: &[String]) -> u32 {
-    let mut vec = input[0]
-        .split_whitespace()
-        .map(|num| num.parse::<u32>().unwrap())
-        .collect::<Vec<_>>();
 
-    for _ in 0..25 {
-        let mut new = Vec::new();
-        for i in 0..vec.len() {
-            let elem = vec[i];
-            match elem {
-                0 => new.push(1),
-                n if n.to_string().len() % 2 == 0 => {
-                    let (fst, snd) = split_number(n);
-                    new.push(fst);
-                    new.push(snd);
+fn solve<const N: usize>(input: &[String]) -> usize {
+    let mut map = input[0]
+        .split_whitespace()
+        .map(|num| (num.parse::<usize>().unwrap(), 1))
+        .collect::<fxhash::FxHashMap<usize, usize>>();
+
+    let is_even = |n: usize| (n.checked_ilog10().unwrap_or(0) + 1) % 2 == 0;
+
+    let mut new = fxhash::FxHashMap::default();
+    for _ in 0..N {
+        new.clear();
+        for (k, v) in map.iter() {
+            match k {
+                0 => *new.entry(1).or_default() += v,
+                n if is_even(*n) => {
+                    let (fst, snd) = split_number(*n);
+                    *new.entry(fst).or_default() += v;
+                    *new.entry(snd).or_default() += v;
                 }
                 n => {
-                    new.push(2024 * n);
+                    let n = n * 2024;
+                    *new.entry(n).or_default() += v;
                 }
             }
         }
-        vec = new;
+        std::mem::swap(&mut map, &mut new);
     }
 
-    vec.len() as u32
+    map.into_values().sum()
+}
+
+fn task_one(input: &[String]) -> usize {
+    solve::<25>(input)
 }
 
 fn task_two(input: &[String]) -> usize {
-    let mut vec = input[0]
-        .split_whitespace()
-        .map(|num| num.parse::<u32>().unwrap())
-        .collect::<Vec<_>>();
-
-    let mut new = Vec::new();
-    for n in 0..75 {
-        for i in 0..vec.len() {
-            let elem = vec[i];
-            match elem {
-                0 => new.push(1),
-                n if n.to_string().len() % 2 == 0 => {
-                    let (fst, snd) = split_number(n);
-                    new.push(fst);
-                    new.push(snd);
-                }
-                n => {
-                    new.push(2024 * n);
-                }
-            }
-        }
-        std::mem::swap(&mut vec, &mut new);
-        new.clear();
-    }
-
-    vec.len()
+    solve::<75>(input)
 }
 
 fn main() {
