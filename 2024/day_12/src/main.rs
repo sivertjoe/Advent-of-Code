@@ -195,36 +195,15 @@ fn calculate_sides(seen: &HashSet<(usize, usize)>) -> usize {
         .map(|(y, x)| (*y as isize, *x as isize))
         .collect::<HashSet<_>>();
 
-    //println!("{:?}", seen);
-
     let start = seen.iter().min().unwrap();
     let start = (start.0 - 1, start.1);
     let mut dir = Dir::Down;
-
-    /*let start = seen
-        .iter()
-        .map(|&(y, x)| [(y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)])
-        .flatten()
-        .find(|pos| !seen.contains(pos))
-        .unwrap();
-
-    let mut dir = if seen.contains(&(start.0 - 1, start.1)) {
-        Dir::Up
-    } else if seen.contains(&(start.0 + 1, start.1)) {
-        Dir::Down
-    } else if seen.contains(&(start.0, start.1 - 1)) {
-        Dir::Left
-    } else {
-        Dir::Right
-    };*/
 
     dir = try_move(start, dir, &seen).unwrap_err();
     let odir = dir;
     let mut pos = start;
 
     let mut sum = 0;
-    // print_shape(&seen, pos, dir);
-
     loop {
         match try_move(pos, dir, &seen) {
             Ok(Ok(next)) => pos = next,
@@ -241,8 +220,6 @@ fn calculate_sides(seen: &HashSet<(usize, usize)>) -> usize {
         if pos == start && dir == odir {
             break;
         }
-        //print_shape(&seen, pos, dir);
-        //pause();
     }
 
     sum
@@ -255,14 +232,14 @@ fn pause() {
 
 type U = (usize, usize);
 
-fn flood((y, x): U, map: &[Vec<u8>], ignore: u8) -> HashSet<(usize, usize)> {
+fn flood((y, x): U, map: &[Vec<u8>], shape: &HashSet<U>) -> HashSet<(usize, usize)> {
     let start = (y, x);
 
     let mut vec = vec![start];
     let mut seen = HashSet::new();
 
     while let Some((ny, nx)) = vec.pop() {
-        if map[ny][nx] == ignore {
+        if shape.contains(&(ny, nx)){
             continue;
         }
 
@@ -271,7 +248,7 @@ fn flood((y, x): U, map: &[Vec<u8>], ignore: u8) -> HashSet<(usize, usize)> {
         }
 
         let ns = neighbors(map, (ny, nx))
-            .filter(|(_ny, _nx)| map[*_ny][*_nx] != ignore)
+            .filter(|(_ny, _nx)| !shape.contains(&(*_ny, *_nx)))
             .collect::<Vec<_>>();
 
         for n in ns {
@@ -282,7 +259,7 @@ fn flood((y, x): U, map: &[Vec<u8>], ignore: u8) -> HashSet<(usize, usize)> {
     seen
 }
 
-fn find_insides(shape: &HashSet<U>, map: &[Vec<u8>], ingore: u8) -> Vec<HashSet<U>> {
+fn find_insides(shape: &HashSet<U>, map: &[Vec<u8>], _ingore: u8) -> Vec<HashSet<U>> {
     let max_y = shape.iter().map(|p| p.0).max().unwrap();
     let max_x = shape.iter().map(|p| p.1).max().unwrap();
 
@@ -294,7 +271,7 @@ fn find_insides(shape: &HashSet<U>, map: &[Vec<u8>], ingore: u8) -> Vec<HashSet<
     for y in min_y..=max_y {
         for x in min_x..=max_x {
             if !seen.contains(&(y, x)) {
-                let s = flood((y as usize, x as usize), map, ingore);
+                let s = flood((y as usize, x as usize), map, shape);
 
                 let goes_to_edge = s
                     .iter()
@@ -312,12 +289,6 @@ fn find_insides(shape: &HashSet<U>, map: &[Vec<u8>], ingore: u8) -> Vec<HashSet<
     inside
 }
 
-// Too high     4561146
-//               811148
-//               811684
-// Too low :(    760812
-// 795562
-
 fn task_two(input: &[String]) -> usize {
     let map: Vec<Vec<_>> = input.iter().map(|line| line.bytes().collect()).collect();
 
@@ -329,33 +300,18 @@ fn task_two(input: &[String]) -> usize {
                 continue;
             }
             if seen.insert((y, x)) {
-                // let y = 0;
-                // let x = 6;
                 let (a, _p, s) = find_area_and_perimiter((y, x), &map);
                 let mut sides = calculate_sides(&s);
-
-                if map[y][x] == b'I' {
-                    let s = s.iter().map(|p| (p.0 as _, p.1 as _)).collect();
-                    print_shape2(&s);
-                }
 
                 let inside = find_insides(&s, &map, map[y][x]);
                 for s in inside {
                     sides += calculate_sides(&s);
-                    // let s = s.into_iter().map(|p| (p.0 as _, p.1 as _)).collect();
-                    // print_shape2(&s);
-                    if map[y][x] == b'I' {
-                        let s = s.iter().map(|p| (p.0 as _, p.1 as _)).collect();
-                        print_shape2(&s);
-                    }
                 }
 
                 for p in s {
                     seen.insert(p);
                 }
-                println!("{} {} * {}", map[y][x] as char, a, sides);
                 sum += a * sides;
-                // std::process::exit(0);
             }
         }
     }
@@ -555,6 +511,25 @@ mod tests {
             "...................".to_string(),
         ];
 
-        assert_eq!(task_two(&input), 96 * 496 * 42);
+        assert_eq!(task_two(&input), 98 * 42);
+    }
+
+    #[test]
+    fn input_11() {
+        let input = [
+            ".............I...I.IIIII...".to_string(),
+            "............II...IIIIIII.I.".to_string(),
+            ".....I......IIIIIIIIIIIIII.".to_string(),
+            ".....I...IIIIIIIIIIIIIIII..".to_string(),
+            "...IIIIII.IIIIIIIIIIIIIII..".to_string(),
+            "...IIIIIII...IIIIIIIII.....".to_string(),
+            "..IIIIIIII....IIIIII.......".to_string(),
+            "..I.IIIII......IIIII.......".to_string(),
+            "....IIIII......IIIIII......".to_string(),
+            "....II..........IIIII......".to_string(),
+            "..............IIIII........".to_string()
+        ];
+
+        assert_eq!(task_two(&input), 98 * 42 + 36 * 20);
     }
 }
