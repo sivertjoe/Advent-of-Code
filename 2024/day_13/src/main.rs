@@ -1,130 +1,60 @@
-use std::collections::*;
+use nalgebra::{Vector2, Matrix2};
 
-fn split(line: &str) -> (usize, usize) {
-    let fst1 = line.chars().position(|ch| ch == 'X').unwrap();
-    let fst2 = line.chars().position(|ch| ch == ',').unwrap();
+fn split(line: &String) -> Vector2<f64> {
+    let mut parts = line.split([',', ' ']);
+    let x = parts.find(|s| s.starts_with('X')).unwrap()[2..].parse::<f64>().unwrap();
+    let y = parts.find(|s| s.starts_with('Y')).unwrap()[2..].parse::<f64>().unwrap();
 
-    let fst = line[fst1 + 2..fst2].parse::<usize>().unwrap();
-
-    let snd1 = line.chars().position(|ch| ch == 'Y').unwrap();
-
-    let snd = line[snd1 + 2..].parse::<usize>().unwrap();
-
-    (fst, snd)
-}
-fn split2(line: &str) -> I {
-    let fst1 = line.chars().position(|ch| ch == 'X').unwrap();
-    let fst2 = line.chars().position(|ch| ch == ',').unwrap();
-
-    let fst = line[fst1 + 2..fst2].parse::<isize>().unwrap();
-
-    let snd1 = line.chars().position(|ch| ch == 'Y').unwrap();
-
-    let snd = line[snd1 + 2..].parse::<isize>().unwrap();
-
-    (fst, snd)
+    Vector2::new(x, y)
 }
 
-type U = (usize, usize);
+fn try_get_whole(a: f64, b: f64) -> Option<(usize, usize)>
+{
+    let epsilon = 1e-3;
+    if (a - a.round()).abs() < epsilon && (b - b.round()).abs() < epsilon {
+        Some((a.round() as usize, b.round() as usize))
+    } else {
+        None
+    }
+}
 
-fn try_solve_single(s: (U, U, U)) -> Option<(usize, usize)> {
-    let (ax, ay) = s.0;
-    let (bx, by) = s.1;
-    let (px, py) = s.2;
+fn solve(input: &[String], part_2: bool) -> usize {
+    let parse = |chunk: &[String]| {
+        let mut iter = chunk.iter().map(split);
+        let a  = iter.next().unwrap();
+        let b = iter.next().unwrap();
+        let mut c = iter.next().unwrap();
 
-    for i in 0.. {
-        for j in 0.. {
-            if (ax * i + bx * j) == px && (ay * i + by * j) == py {
-                return Some((i, j));
-            }
-            if j >= 100 {
-                break;
-            }
+        if part_2 {
+            c[0] += 10000000000000.0;
+            c[1] += 10000000000000.0;
         }
-        if i >= 100 {
-            return None;
-        }
-    }
-    None
-}
 
-fn solve_linear_system(
-    a: (isize, isize),
-    b: (isize, isize),
-    c: (isize, isize),
-) -> Option<(isize, isize)> {
-    let det = a.0 * b.0 - a.1 * b.1;
-    if det == 0 {
-        return None;
-    }
+        let mat = Matrix2::new(a[0], b[0], a[1], b[1]);
+        (mat, c)
+    };
 
-    let det_i = c.0 * b.1 - c.1 * b.0;
-    let det_j = a.0 * c.1 - a.1 * c.0;
-
-    if det_i % det != 0 || det_j % det != 0 {
-        return None;
-    }
-
-    let i = det_i / det;
-    let j = det_j / det;
-    Some((i, j))
-}
-
-fn solve(input: &[String]) -> usize {
-    let buttons = input
+    let machines = input
         .split(|line| line.is_empty())
-        .map(|chunk| {
-            let mut iter = chunk.iter();
-            (
-                split(iter.next().unwrap()),
-                split(iter.next().unwrap()),
-                split(iter.next().unwrap()),
-            )
-        })
-        .collect::<Vec<(U, U, U)>>();
+        .map(parse);
 
     let mut sum = 0;
-
-    for s in buttons {
-        if let Some((na, nb)) = try_solve_single(s) {
-            sum += 3 * na + nb;
+    for (mat, c) in machines {
+        if let Some((i, j)) = mat.try_inverse().map(|inv| inv * c).and_then(|sol| try_get_whole(sol[0],sol[1])) {
+            if part_2 || i <= 100 && j <= 100 {
+                sum += 3 * i + j;
+            }
         }
     }
-
     sum
 }
 
-type I = (isize, isize);
-fn solve_2(input: &[String]) -> usize {
-    let buttons = input
-        .split(|line| line.is_empty())
-        .map(|chunk| {
-            let mut iter = chunk.iter();
-            (
-                split2(iter.next().unwrap()),
-                split2(iter.next().unwrap()),
-                split2(iter.next().unwrap()),
-            )
-        })
-        .collect::<Vec<(I, I, I)>>();
-
-    let mut sum = 0;
-
-    for s in buttons {
-        if let Some((na, nb)) = solve_linear_system(s.0, s.1, s.2) {
-            sum += 3 * na + nb;
-        }
-    }
-
-    sum as usize
-}
-
 fn task_one(input: &[String]) -> usize {
-    solve(input)
+    solve(input, false)
 }
 
 fn task_two(input: &[String]) -> usize {
-    solve_2(input)
+    solve(input, true)
 }
 
 fn main() {
