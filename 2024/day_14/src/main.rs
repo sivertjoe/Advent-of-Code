@@ -1,121 +1,99 @@
-use std::collections::*;
+type P = (i32, i32);
+type HashMap<K, V> = fxhash::FxHashMap<K, V>;
+type Vec<T> = smallvec::SmallVec<[T; 8]>;
 
-type P = (isize, isize);
+const W: i32 = 101;
+const H: i32 = 103;
 
 fn parse(input: &[String]) -> Vec<(P, P)> {
-    input
-        .iter()
-        .map(|line| {
-            let line = line.replace("p=", "").replace("v=", "");
+    let get = |iter: &mut dyn Iterator<Item = i32>| iter.next().unwrap();
 
-            let mut split = line.split_whitespace();
-            let mut fst = split
-                .next()
-                .unwrap()
-                .split(',')
-                .map(|n| n.parse::<isize>().unwrap());
-            let mut snd = split
-                .next()
-                .unwrap()
-                .split(',')
-                .map(|n| n.parse::<isize>().unwrap());
+    let mut vec = Vec::with_capacity(input.len());
+    for line in input {
+        let line = line.replace("p=", "").replace("v=", "");
 
-            (
-                (fst.next().unwrap(), fst.next().unwrap()),
-                (snd.next().unwrap(), snd.next().unwrap()),
-            )
-        })
-        .collect::<Vec<_>>()
+        let mut split = line
+            .split_whitespace()
+            .map(|v| v.split(',').map(|n| n.parse::<i32>().unwrap()));
+        let mut fst = split.next().unwrap();
+        let mut snd = split.next().unwrap();
+
+        vec.push((
+            (get(&mut fst), get(&mut fst)),
+            (get(&mut snd), get(&mut snd)),
+        ));
+    }
+    vec
 }
 
-fn print_map(map: &HashMap<P, Vec<P>>) {
-    for y in 0..H {
-        for x in 0..W {
-            if let Some(v) = map.get(&(y as isize, x as isize)) {
-                print!("{}", v.len());
-            } else {
-                print!(".");
-            }
-        }
-        println!();
-    }
-    println!();
-}
-
-const W: usize = 101;
-const H: usize = 103;
-// const W: usize = 11;
-// const H: usize = 7;
-
-fn task_one(input: &[String]) -> usize {
-    let vec = parse(input);
-
-    let mut map: HashMap<P, Vec<P>> = HashMap::new();
-
-    for robot in vec {
-        map.entry((robot.0 .1, robot.0 .0))
-            .or_default()
-            .push((robot.1 .1, robot.1 .0));
-    }
-
-    for _ in 0..100 {
-        map = update(map);
-    }
-
-    let qs = [
-        ((0, 0), (H / 2, W / 2)),             // TOP LEFT
-        ((0, (W / 2) + 1), (H / 2, W)),       // TOP RIGHT
-        (((H / 2) + 1, 0), (H, W / 2)),       // BOT LEFT
-        (((H / 2) + 1, (W / 2) + 1), (H, W)), // BOT RIGHT
-    ];
-    let mut prod = 1;
-    for q in qs {
-        let mut sum = 0;
-        for y in q.0 .0..q.1 .0 {
-            for x in q.0 .1..q.1 .1 {
-                if let Some(v) = map.get(&(y as _, x as _)) {
-                    sum += v.len();
-                }
-            }
-        }
-        prod *= sum;
-    }
-
-    prod
-}
-
-fn update(map: HashMap<P, Vec<P>>) -> HashMap<P, Vec<P>> {
-    let mut new: HashMap<P, Vec<P>> = HashMap::with_capacity(map.len());
+fn update(map: &HashMap<P, Vec<P>>, times: i32) -> HashMap<P, Vec<P>> {
+    let mut new: HashMap<P, Vec<P>> =
+        HashMap::with_capacity_and_hasher(map.len(), fxhash::FxBuildHasher::default());
 
     for (pos, robots) in map {
         for robot_vel in robots {
             let new_pos = (
-                (pos.0 + robot_vel.0).rem_euclid(H as isize),
-                (pos.1 + robot_vel.1).rem_euclid(W as isize),
+                (pos.0 + times * robot_vel.0).rem_euclid(H as i32),
+                (pos.1 + times * robot_vel.1).rem_euclid(W as i32),
             );
-            new.entry(new_pos).or_default().push(robot_vel);
+            new.entry(new_pos).or_default().push(*robot_vel);
         }
     }
 
     new
 }
 
-fn task_two(input: &[String]) -> usize {
+fn get_map(input: &[String]) -> HashMap<P, Vec<P>> {
     let vec = parse(input);
 
-    let mut map: HashMap<P, Vec<P>> = HashMap::new();
+    let mut map: HashMap<P, Vec<P>> =
+        HashMap::with_capacity_and_hasher(vec.len(), fxhash::FxBuildHasher::default());
 
     for robot in vec {
         map.entry((robot.0 .1, robot.0 .0))
             .or_default()
             .push((robot.1 .1, robot.1 .0));
     }
+    map
+}
 
-    for i in 1..=6668 {
-        map = update(map);
+fn contains_xmastree(map: &HashMap<P, Vec<P>>) -> bool {
+    map.values().all(|v| v.len() == 1)
+}
+
+fn task_one(input: &[String]) -> usize {
+    let mut map = get_map(input);
+    map = update(&map, 100);
+
+    let qs = [
+        (0..H / 2, 0..W / 2),
+        ((0..H / 2), (W / 2) + 1..W),
+        ((H / 2) + 1..H, 0..W / 2),
+        ((H / 2) + 1..H, (W / 2) + 1..W),
+    ];
+
+    let mut quads = [0, 0, 0, 0];
+
+    for (pos, vec) in map {
+        if let Some(idx) = qs
+            .iter()
+            .position(|(y, x)| y.contains(&pos.0) && x.contains(&pos.1))
+        {
+            quads[idx] += vec.len();
+        }
     }
 
-    6668
+    quads.into_iter().product()
+}
+
+fn task_two(input: &[String]) -> usize {
+    use rayon::prelude::*;
+    let map = get_map(input);
+
+    (1..10_000)
+        .into_par_iter()
+        .find_first(|i| contains_xmastree(&update(&map, *i as _)))
+        .unwrap()
 }
 
 fn main() {
