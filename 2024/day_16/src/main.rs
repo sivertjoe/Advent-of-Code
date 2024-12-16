@@ -1,5 +1,30 @@
+use rayon::prelude::*;
 use std::cmp::Reverse;
 use std::collections::*;
+
+type HashMap<K, V> = fxhash::FxHashMap<K, V>;
+
+type P = (usize, usize);
+type I = (isize, isize);
+
+fn parse(input: &[String]) -> (Vec<Vec<u8>>, P, P) {
+    let vec: Vec<Vec<_>> = input.iter().map(|line| line.bytes().collect()).collect();
+    let start = vec
+        .iter()
+        .flatten()
+        .enumerate()
+        .find_map(|(i, ch)| (*ch == b'S').then_some((i / vec.len(), i % vec.len())))
+        .unwrap();
+
+    let end = vec
+        .iter()
+        .flatten()
+        .enumerate()
+        .find_map(|(i, ch)| (*ch == b'E').then_some((i / vec.len(), i % vec.len())))
+        .unwrap();
+
+    (vec, start, end)
+}
 
 fn neighbors(map: &[Vec<u8>], (y, x): (usize, usize)) -> impl Iterator<Item = (usize, usize)> {
     let my = map.len() as isize;
@@ -22,52 +47,84 @@ fn get_direction(from: (usize, usize), to: (usize, usize)) -> (isize, isize) {
     (x_dir, y_dir)
 }
 
-fn task_one(input: &[String]) -> usize {
-    let map: Vec<Vec<_>> = input.iter().map(|line| line.bytes().collect()).collect();
+fn dijkstra(vec: &[Vec<u8>], start: P, dir: I, _end: P) -> (I, HashMap<P, usize>) {
+    let mut dist = HashMap::default();
 
-    let mut scores: HashMap<(usize, usize), usize> = HashMap::new();
+    let mut heap = BinaryHeap::new();
+    dist.insert(start, 0);
+    heap.push((Reverse(0), start, dir));
 
-    let mut start = (0, 0);
-    let mut stop = (0, 0);
-    for (y, line) in map.iter().enumerate() {
-        for (x, ch) in line.iter().enumerate() {
-            if *ch == b'S' {
-                start = (y, x);
-            }
-            if *ch == b'E' {
-                stop = (y, x);
+    while let Some((cost, pos, dir)) = heap.pop() {
+        if cost.0 > *dist.get(&pos).unwrap_or(&usize::MAX) {
+            continue;
+        }
+
+        if pos == _end {
+            return (dir, dist);
+        }
+
+        for n in neighbors(vec, pos).filter(|next| vec[next.0][next.1] != b'#') {
+            let new_dir = get_direction(pos, n);
+            let new_cost = cost.0 + if new_dir != dir { 1000 + 1 } else { 1 };
+
+            if new_cost < *dist.get(&n).unwrap_or(&usize::MAX) {
+                heap.push((Reverse(new_cost), n, new_dir));
+                dist.insert(n, new_cost);
             }
         }
     }
-    use std::cmp::Reverse;
 
-    let mut vec = BinaryHeap::new();
-    let mut seen = HashSet::new();
-    vec.push((Reverse(0), start, Some((0, 1))));
-    seen.insert(start);
+    unreachable!()
+}
 
-    while let Some((cost, pos, direction)) = vec.pop() {
-        if pos == stop {
-            return cost.0;
+fn solve_from(
+    vec: &[Vec<u8>],
+    dists: &[HashMap<P, usize>],
+    cost: usize,
+    (from, dir): (P, I),
+    end: P,
+) -> HashSet<P> {
+    let mut heap = BinaryHeap::new();
+    let mut lseen = BTreeSet::new();
+    lseen.insert(from);
+
+    heap.push((Reverse(cost), from, dir, lseen));
+
+    let best_score = dists[0][&from];
+
+    let mut paths = HashSet::new();
+
+    while let Some((cost, pos, direction, seen)) = heap.pop() {
+        if pos == end {
+            paths.extend(seen);
+            continue;
         }
 
-        for neighbor in neighbors(&map, pos).filter(|next| map[next.0][next.1] != b'#') {
-            if seen.insert(neighbor) {
-                let new_dir = Some(get_direction(pos, neighbor));
-                let new_cost = if new_dir.is_some() && new_dir != direction {
+        if dists
+            .iter()
+            .all(|dist| cost.0 + dist.get(&pos).unwrap() > best_score)
+        {
+            continue;
+        }
+
+        for neighbor in neighbors(&vec, pos).filter(|next| vec[next.0][next.1] != b'#') {
+            if !seen.contains(&neighbor) {
+                let mut new_seen = seen.clone();
+                new_seen.insert(neighbor);
+                let new_dir = get_direction(pos, neighbor);
+                let new_cost = if new_dir != direction {
                     Reverse(cost.0 + 1000 + 1)
                 } else {
                     Reverse(cost.0 + 1)
                 };
-
-                vec.push((new_cost, neighbor, new_dir));
+                heap.push((new_cost, neighbor, new_dir, new_seen));
             }
         }
     }
-    unreachable!()
+    paths
 }
 
-fn printerino(map: &[Vec<u8>], seen: &BTreeSet<(usize, usize)>) {
+fn pr(map: &[Vec<u8>], seen: &HashSet<(usize, usize)>) {
     for y in 0..map.len() {
         for x in 0..map[0].len() {
             if seen.contains(&(y, x)) {
@@ -80,120 +137,70 @@ fn printerino(map: &[Vec<u8>], seen: &BTreeSet<(usize, usize)>) {
     }
 }
 
-fn best_path(map: &[Vec<u8>], start: (usize, usize), _dir: (isize, isize)) -> usize {
-    let mut stop = (0, 0);
-    for (y, line) in map.iter().enumerate() {
-        for (x, ch) in line.iter().enumerate() {
-            if *ch == b'E' {
-                stop = (y, x);
-            }
-        }
-    }
-
-    let mut vec = BinaryHeap::new();
-    let mut seen = HashSet::new();
-    vec.push((Reverse(0), start, Some(_dir)));
-    seen.insert(start);
-
-    while let Some((cost, pos, direction)) = vec.pop() {
-        if pos == stop {
-            return cost.0;
-        }
-
-        for neighbor in neighbors(&map, pos).filter(|next| map[next.0][next.1] != b'#') {
-            if seen.insert(neighbor) {
-                let new_dir = Some(get_direction(pos, neighbor));
-                let new_cost = if new_dir.is_some() && new_dir != direction {
-                    Reverse(cost.0 + 1000 + 1)
-                } else {
-                    Reverse(cost.0 + 1)
-                };
-
-                vec.push((new_cost, neighbor, new_dir));
-            }
-        }
-    }
-    unreachable!()
+fn task_one(input: &[String]) -> usize {
+    let (vec, start, end) = parse(input);
+    let dist = dijkstra(&vec, start, (0, 1), end).1;
+    dist[&end]
 }
 
 fn task_two(input: &[String]) -> usize {
-    let map: Vec<Vec<_>> = input.iter().map(|line| line.bytes().collect()).collect();
-    let mut dist = HashMap::new();
+    let (vec, start, end) = parse(input);
 
-    println!("CREATING DIST MAP");
-    for y in 0..map.len() {
-        for x in 0..map[0].len() {
-            if map[y][x] != b'#' {
-                let min = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-                    .into_iter()
-                    .map(|dir| best_path(&map, (y, x), dir))
-                    .min()
-                    .unwrap();
-                dist.insert((y, x), min);
+    let dists = neighbors(&vec, end)
+        .filter(|n| vec[n.0][n.1] != b'#')
+        .par_bridge()
+        .map(|next| {
+            let dir = get_direction(end, next);
+            let (dir, mut dist) = dijkstra(&vec, end, dir, start);
+            if dir != (0, -1) {
+                // *dist.get_mut(&start).unwrap() += 1000;
+                // dist.iter_mut()
+                //     .filter(|(pos, _)| **pos != start)
+                //     .for_each(|(_pos, v)| *v += 1000);
+                println!("test..");
+            }
+            dist
+        })
+        .collect::<Vec<_>>();
+    // println!("{}", dists.len());
+
+    let from_start = dijkstra(&vec, start, (0, 1), end).1;
+    let best_score = from_start[&end];
+
+    // println!("best is {}", best_score);
+    // for dist in &dists {
+    //     println!("{}", from_start[&end] + dist[&end]);
+    // }
+
+    let mut uh = HashSet::new();
+    let mut paths = 0;
+    for y in 0..vec.len() {
+        for x in 0..vec[0].len() {
+            let pos = &(y, x);
+            if vec[y][x] == b'#' {
+                continue;
+            }
+            if dists.iter().any(|dist| {
+                from_start.get(pos).unwrap_or(&(usize::MAX / 2))
+                    + dist.get(pos).unwrap_or(&(usize::MAX / 2))
+                    == best_score
+            }) {
+                paths += 1;
+                uh.insert((y, x));
             }
         }
     }
-    println!("DONE");
 
-    let mut scores = Vec::new();
+    // let solve = solve_from(&vec, &dists, 0, (start, (0, 1)), end);
+    // println!("uh {} solve {}", uh.len(), solve.len());
+    // for u in uh {
+    //     if !solve.contains(&u) {
+    //         println!("{:?}", u);
+    //     }
+    // }
+    pr(&vec, &uh);
 
-    let mut start = (0, 0);
-    let mut stop = (0, 0);
-    for (y, line) in map.iter().enumerate() {
-        for (x, ch) in line.iter().enumerate() {
-            if *ch == b'S' {
-                start = (y, x);
-            }
-            if *ch == b'E' {
-                stop = (y, x);
-            }
-        }
-    }
-
-    let mut vec = BinaryHeap::new();
-    let mut lseen = BTreeSet::new();
-    lseen.insert(start);
-
-    vec.push((Reverse(0), start, Some((0, 1)), lseen));
-
-    let best_score = task_one(input);
-
-    println!("SEARCHING....");
-    while let Some((cost, pos, direction, seen)) = vec.pop() {
-        // println!("{:?}", pos);
-        // printerino(&map, &seen);
-        // let _ = std::io::stdin().read_line(&mut String::new());
-        if pos == stop {
-            scores.push(seen);
-            let len = scores.iter().flatten().collect::<HashSet<_>>().len();
-            println!("{}", len);
-            continue;
-        }
-
-        let can_get = cost.0 + dist.get(&pos).unwrap();
-
-        if can_get > best_score {
-            continue;
-        }
-
-        for neighbor in neighbors(&map, pos).filter(|next| map[next.0][next.1] != b'#') {
-            if !seen.contains(&neighbor) {
-                let mut new_seen = seen.clone();
-                new_seen.insert(neighbor);
-                let new_dir = Some(get_direction(pos, neighbor));
-                let new_cost = if new_dir.is_some() && new_dir != direction {
-                    Reverse(cost.0 + 1000 + 1)
-                } else {
-                    Reverse(cost.0 + 1)
-                };
-                vec.push((new_cost, neighbor, new_dir, new_seen));
-            }
-        }
-    }
-    //let vec = scores.into_iter().min_by_key(|k| k.0).unwrap().1;
-    let set = scores.into_iter().flatten().collect::<HashSet<_>>();
-    //printerino(&map, &set);
-    set.len()
+    paths
 }
 
 fn main() {
