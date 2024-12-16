@@ -1,3 +1,4 @@
+use std::cmp::Reverse;
 use std::collections::*;
 
 fn neighbors(map: &[Vec<u8>], (y, x): (usize, usize)) -> impl Iterator<Item = (usize, usize)> {
@@ -79,8 +80,60 @@ fn printerino(map: &[Vec<u8>], seen: &BTreeSet<(usize, usize)>) {
     }
 }
 
+fn best_path(map: &[Vec<u8>], start: (usize, usize), _dir: (isize, isize)) -> usize {
+    let mut stop = (0, 0);
+    for (y, line) in map.iter().enumerate() {
+        for (x, ch) in line.iter().enumerate() {
+            if *ch == b'E' {
+                stop = (y, x);
+            }
+        }
+    }
+
+    let mut vec = BinaryHeap::new();
+    let mut seen = HashSet::new();
+    vec.push((Reverse(0), start, Some(_dir)));
+    seen.insert(start);
+
+    while let Some((cost, pos, direction)) = vec.pop() {
+        if pos == stop {
+            return cost.0;
+        }
+
+        for neighbor in neighbors(&map, pos).filter(|next| map[next.0][next.1] != b'#') {
+            if seen.insert(neighbor) {
+                let new_dir = Some(get_direction(pos, neighbor));
+                let new_cost = if new_dir.is_some() && new_dir != direction {
+                    Reverse(cost.0 + 1000 + 1)
+                } else {
+                    Reverse(cost.0 + 1)
+                };
+
+                vec.push((new_cost, neighbor, new_dir));
+            }
+        }
+    }
+    unreachable!()
+}
+
 fn task_two(input: &[String]) -> usize {
     let map: Vec<Vec<_>> = input.iter().map(|line| line.bytes().collect()).collect();
+    let mut dist = HashMap::new();
+
+    println!("CREATING DIST MAP");
+    for y in 0..map.len() {
+        for x in 0..map[0].len() {
+            if map[y][x] != b'#' {
+                let min = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+                    .into_iter()
+                    .map(|dir| best_path(&map, (y, x), dir))
+                    .min()
+                    .unwrap();
+                dist.insert((y, x), min);
+            }
+        }
+    }
+    println!("DONE");
 
     let mut scores = Vec::new();
 
@@ -96,7 +149,6 @@ fn task_two(input: &[String]) -> usize {
             }
         }
     }
-    use std::cmp::Reverse;
 
     let mut vec = BinaryHeap::new();
     let mut lseen = BTreeSet::new();
@@ -106,17 +158,21 @@ fn task_two(input: &[String]) -> usize {
 
     let best_score = task_one(input);
 
+    println!("SEARCHING....");
     while let Some((cost, pos, direction, seen)) = vec.pop() {
-        println!("{:?}", pos);
-        printerino(&map, &seen);
-        let _ = std::io::stdin().read_line(&mut String::new());
+        // println!("{:?}", pos);
+        // printerino(&map, &seen);
+        // let _ = std::io::stdin().read_line(&mut String::new());
         if pos == stop {
             scores.push(seen);
             let len = scores.iter().flatten().collect::<HashSet<_>>().len();
             println!("{}", len);
             continue;
         }
-        if cost.0 > best_score {
+
+        let can_get = cost.0 + dist.get(&pos).unwrap();
+
+        if can_get > best_score {
             continue;
         }
 
