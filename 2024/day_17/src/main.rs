@@ -1,3 +1,7 @@
+const A: usize = 0;
+const B: usize = 1;
+const C: usize = 2;
+
 fn parse(input: &[String]) -> (Vec<usize>, Vec<usize>) {
     let mut iter = input.split(|line| line.is_empty());
 
@@ -19,111 +23,48 @@ fn parse(input: &[String]) -> (Vec<usize>, Vec<usize>) {
     (regs, ins)
 }
 
-fn get_combo_value(regs: &[usize], op: usize) -> usize {
+fn get(regs: &[usize], op: usize) -> usize {
     match op {
         0..=3 => op,
-        4 => regs[0],
-        5 => regs[1],
-        6 => regs[2],
-        7 => todo!(),
-        8.. => unreachable!(),
+        4 => regs[A],
+        5 => regs[B],
+        6 => regs[C],
+        7.. => unreachable!(),
     }
 }
 
-fn run(regs: Vec<usize>, ins: Vec<usize>) -> Vec<usize> {
-    let mut out = Vec::new();
+fn run(regs: &mut [usize], ins: &[usize]) -> (usize, bool) {
     let mut ip = 0;
-    let mut regs = regs;
 
+    let mut out = 0;
     loop {
-        if ip >= (ins.len() - 1) {
-            break;
-        }
-        match ins[ip] {
-            0 => {
-                let oper = get_combo_value(&regs, ins[ip + 1]);
-                let numerator = regs[0];
-                let denominator = 2usize.pow(oper as _);
-
-                let res = numerator / denominator;
-                regs[0] = res;
-                ip += 2;
-            }
-
-            1 => {
-                regs[1] = regs[1] ^ ins[ip + 1] as usize;
-                ip += 2;
-            }
-
-            2 => {
-                let oper = get_combo_value(&regs, ins[ip + 1]);
-                regs[1] = oper % 8;
-                ip += 2;
-            }
-            3 => {
-                if regs[0] == 0 {
-                    ip += 2;
-                    // do nothing
-                } else {
-                    assert!(ins[ip + 1] <= 3);
-                    ip = ins[ip + 1] as usize;
-                }
-            }
-            4 => {
-                regs[1] = regs[1] ^ regs[2];
-                ip += 2;
-            }
-            5 => {
-                let oper = get_combo_value(&regs, ins[ip + 1]);
-                let ch = oper % 8;
-                out.push(ch as usize);
-                ip += 2;
-            }
-            6 => {
-                let oper = get_combo_value(&regs, ins[ip + 1]);
-                let numerator = regs[0];
-                let denominator = 2usize.pow(oper as _);
-
-                let res = numerator / denominator;
-                regs[1] = res;
-                ip += 2;
-            }
-            7 => {
-                let oper = get_combo_value(&regs, ins[ip + 1]);
-                let numerator = regs[0];
-                let denominator = 2usize.pow(oper as _);
-
-                let res = numerator / denominator;
-                regs[2] = res;
-                ip += 2;
-            }
+        let curr = ins[ip];
+        let oper = ins[ip + 1];
+        ip += 2;
+        match curr {
+            0 => regs[A] /= 2usize.pow(get(&regs, oper) as _),
+            1 => regs[B] ^= oper,
+            2 => regs[B] = get(&regs, oper) % 8,
+            3 => return (out, regs[A] != 0),
+            4 => regs[B] ^= regs[C],
+            5 => out = get(&regs, oper) % 8,
+            6 => regs[B] = regs[A] / 2usize.pow(get(&regs, oper) as _),
+            7 => regs[C] = regs[A] / 2usize.pow(get(&regs, oper) as _),
             _ => unreachable!(),
         }
     }
-    out
 }
 
-fn cycle(a: usize) -> usize {
-    let x = (a & 7) ^ 3;
-    (x ^ (a >> x)) ^ 5
-}
-
-fn task_one(input: &[String]) -> String {
-    let (regs, ins) = parse(input);
-    let res = run(regs, ins);
-    res.into_iter()
-        .map(|n| n.to_string())
-        .collect::<Vec<_>>()
-        .join(",")
-}
-
-fn rec(n: usize, program: &[usize]) -> Option<usize> {
+fn rec<F>(n: usize, program: &[usize], cycle: &mut F) -> Option<usize>
+where
+    F: FnMut(usize) -> usize,
+{
     match program {
         [] => Some(n),
         [start @ .., last] => (0..=7).find_map(|i| {
             let next = n * 8 + i;
             if cycle(next) % 8 == *last {
-                rec(next, start)
+                rec(next, start, cycle)
             } else {
                 None
             }
@@ -131,9 +72,35 @@ fn rec(n: usize, program: &[usize]) -> Option<usize> {
     }
 }
 
+fn task_one(input: &[String]) -> String {
+    let (mut regs, ins) = parse(input);
+    let mut outs = Vec::new();
+
+    loop {
+        let (out, cont) = run(&mut regs, &ins);
+        outs.push(out);
+        if !cont {
+            break;
+        }
+    }
+    outs.into_iter()
+        .map(|n| n.to_string())
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
 fn task_two(input: &[String]) -> usize {
-    let (_regs, program) = parse(input);
-    rec(0, &program).unwrap()
+    let (mut regs, ins) = parse(input);
+
+    let mut cycle = |a: usize| {
+        regs[A] = a;
+        regs[B] = 0;
+        regs[C] = 0;
+        let (out, _) = run(&mut regs, &ins);
+        out
+    };
+
+    rec(0, &ins, &mut cycle).unwrap()
 }
 
 fn main() {
