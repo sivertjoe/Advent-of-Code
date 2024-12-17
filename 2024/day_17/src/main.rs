@@ -1,12 +1,10 @@
-use std::collections::*;
-
-fn parse(input: &[String]) -> (Vec<isize>, Vec<usize>) {
+fn parse(input: &[String]) -> (Vec<usize>, Vec<usize>) {
     let mut iter = input.split(|line| line.is_empty());
 
     let regs = iter.next().unwrap();
     let regs = regs
         .iter()
-        .map(|line| line.split(": ").nth(1).unwrap().parse::<isize>().unwrap())
+        .map(|line| line.split(": ").nth(1).unwrap().parse::<usize>().unwrap())
         .collect::<Vec<_>>();
 
     let ins = iter.next().unwrap();
@@ -21,33 +19,31 @@ fn parse(input: &[String]) -> (Vec<isize>, Vec<usize>) {
     (regs, ins)
 }
 
-fn get_operand(regs: &[isize], op: usize) -> isize {
+fn get_combo_value(regs: &[usize], op: usize) -> usize {
     match op {
-        0..=3 => op as isize,
+        0..=3 => op,
         4 => regs[0],
         5 => regs[1],
         6 => regs[2],
         7 => todo!(),
-        _ => unreachable!(),
+        8.. => unreachable!(),
     }
 }
 
-fn task_one(input: &[String]) -> String {
-    let (mut regs, ins) = parse(input);
+fn run(regs: Vec<usize>, ins: Vec<usize>) -> Vec<usize> {
     let mut out = Vec::new();
-
     let mut ip = 0;
+    let mut regs = regs;
 
     loop {
-        if ip >= ins.len() {
+        if ip >= (ins.len() - 1) {
             break;
         }
         match ins[ip] {
             0 => {
-                let oper = get_operand(&regs, ins[ip + 1]);
-                // adv
+                let oper = get_combo_value(&regs, ins[ip + 1]);
                 let numerator = regs[0];
-                let denominator = 2isize.pow(oper as _);
+                let denominator = 2usize.pow(oper as _);
 
                 let res = numerator / denominator;
                 regs[0] = res;
@@ -55,19 +51,16 @@ fn task_one(input: &[String]) -> String {
             }
 
             1 => {
-                // bxl
-                regs[1] = regs[1] ^ ins[ip + 1] as isize;
+                regs[1] = regs[1] ^ ins[ip + 1] as usize;
                 ip += 2;
             }
 
             2 => {
-                // bst
-                let oper = get_operand(&regs, ins[ip + 1]);
+                let oper = get_combo_value(&regs, ins[ip + 1]);
                 regs[1] = oper % 8;
                 ip += 2;
             }
             3 => {
-                // jnz
                 if regs[0] == 0 {
                     ip += 2;
                     // do nothing
@@ -77,29 +70,28 @@ fn task_one(input: &[String]) -> String {
                 }
             }
             4 => {
-                // bxc
                 regs[1] = regs[1] ^ regs[2];
                 ip += 2;
             }
             5 => {
-                let oper = get_operand(&regs, ins[ip + 1]);
+                let oper = get_combo_value(&regs, ins[ip + 1]);
                 let ch = oper % 8;
-                out.push((ch as u8).to_string());
+                out.push(ch as usize);
                 ip += 2;
             }
             6 => {
-                let oper = get_operand(&regs, ins[ip + 1]);
+                let oper = get_combo_value(&regs, ins[ip + 1]);
                 let numerator = regs[0];
-                let denominator = 2isize.pow(oper as _);
+                let denominator = 2usize.pow(oper as _);
 
                 let res = numerator / denominator;
                 regs[1] = res;
                 ip += 2;
             }
             7 => {
-                let oper = get_operand(&regs, ins[ip + 1]);
+                let oper = get_combo_value(&regs, ins[ip + 1]);
                 let numerator = regs[0];
-                let denominator = 2isize.pow(oper as _);
+                let denominator = 2usize.pow(oper as _);
 
                 let res = numerator / denominator;
                 regs[2] = res;
@@ -108,14 +100,40 @@ fn task_one(input: &[String]) -> String {
             _ => unreachable!(),
         }
     }
-    println!("{:?}", regs);
-    out.join("")
+    out
 }
-// 150520135 x
-// 150520135 ?
+
+fn cycle(a: usize) -> usize {
+    let x = (a & 7) ^ 3;
+    (x ^ (a >> x)) ^ 5
+}
+
+fn task_one(input: &[String]) -> String {
+    let (regs, ins) = parse(input);
+    let res = run(regs, ins);
+    res.into_iter()
+        .map(|n| n.to_string())
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn rec(n: usize, program: &[usize]) -> Option<usize> {
+    match program {
+        [] => Some(n),
+        [start @ .., last] => (0..=7).find_map(|i| {
+            let next = n * 8 + i;
+            if cycle(next) % 8 == *last {
+                rec(next, start)
+            } else {
+                None
+            }
+        }),
+    }
+}
 
 fn task_two(input: &[String]) -> usize {
-    unimplemented!()
+    let (_regs, program) = parse(input);
+    rec(0, &program).unwrap()
 }
 
 fn main() {
