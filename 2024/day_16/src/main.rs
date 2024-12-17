@@ -47,7 +47,7 @@ fn get_direction(from: (usize, usize), to: (usize, usize)) -> (isize, isize) {
     (x_dir, y_dir)
 }
 
-fn dijkstra(vec: &[Vec<u8>], start: P, dir: I, _end: P) -> (I, HashMap<P, usize>) {
+fn dijkstra(vec: &[Vec<u8>], start: P, dir: I, end: P) -> HashMap<P, usize> {
     let mut dist = HashMap::default();
 
     let mut heap = BinaryHeap::new();
@@ -59,8 +59,8 @@ fn dijkstra(vec: &[Vec<u8>], start: P, dir: I, _end: P) -> (I, HashMap<P, usize>
             continue;
         }
 
-        if pos == _end {
-            return (dir, dist);
+        if pos == end {
+            return dist;
         }
 
         for n in neighbors(vec, pos).filter(|next| vec[next.0][next.1] != b'#') {
@@ -77,69 +77,9 @@ fn dijkstra(vec: &[Vec<u8>], start: P, dir: I, _end: P) -> (I, HashMap<P, usize>
     unreachable!()
 }
 
-fn solve_from(
-    vec: &[Vec<u8>],
-    dists: &[HashMap<P, usize>],
-    cost: usize,
-    (from, dir): (P, I),
-    end: P,
-) -> HashSet<P> {
-    let mut heap = BinaryHeap::new();
-    let mut lseen = BTreeSet::new();
-    lseen.insert(from);
-
-    heap.push((Reverse(cost), from, dir, lseen));
-
-    let best_score = dists[0][&from];
-
-    let mut paths = HashSet::new();
-
-    while let Some((cost, pos, direction, seen)) = heap.pop() {
-        if pos == end {
-            paths.extend(seen);
-            continue;
-        }
-
-        if dists
-            .iter()
-            .all(|dist| cost.0 + dist.get(&pos).unwrap() > best_score)
-        {
-            continue;
-        }
-
-        for neighbor in neighbors(&vec, pos).filter(|next| vec[next.0][next.1] != b'#') {
-            if !seen.contains(&neighbor) {
-                let mut new_seen = seen.clone();
-                new_seen.insert(neighbor);
-                let new_dir = get_direction(pos, neighbor);
-                let new_cost = if new_dir != direction {
-                    Reverse(cost.0 + 1000 + 1)
-                } else {
-                    Reverse(cost.0 + 1)
-                };
-                heap.push((new_cost, neighbor, new_dir, new_seen));
-            }
-        }
-    }
-    paths
-}
-
-fn pr(map: &[Vec<u8>], seen: &HashSet<(usize, usize)>) {
-    for y in 0..map.len() {
-        for x in 0..map[0].len() {
-            if seen.contains(&(y, x)) {
-                print!("O");
-            } else {
-                print!("{}", map[y][x] as char);
-            }
-        }
-        println!();
-    }
-}
-
 fn task_one(input: &[String]) -> usize {
     let (vec, start, end) = parse(input);
-    let dist = dijkstra(&vec, start, (0, 1), end).1;
+    let dist = dijkstra(&vec, start, (0, 1), end);
     dist[&end]
 }
 
@@ -151,28 +91,13 @@ fn task_two(input: &[String]) -> usize {
         .par_bridge()
         .map(|next| {
             let dir = get_direction(end, next);
-            let (dir, mut dist) = dijkstra(&vec, end, dir, start);
-            if dir != (0, -1) {
-                // *dist.get_mut(&start).unwrap() += 1000;
-                // dist.iter_mut()
-                //     .filter(|(pos, _)| **pos != start)
-                //     .for_each(|(_pos, v)| *v += 1000);
-                println!("test..");
-            }
-            dist
+            dijkstra(&vec, end, dir, start)
         })
         .collect::<Vec<_>>();
-    // println!("{}", dists.len());
 
-    let from_start = dijkstra(&vec, start, (0, 1), end).1;
+    let from_start = dijkstra(&vec, start, (0, 1), end);
     let best_score = from_start[&end];
 
-    // println!("best is {}", best_score);
-    // for dist in &dists {
-    //     println!("{}", from_start[&end] + dist[&end]);
-    // }
-
-    let mut uh = HashSet::new();
     let mut paths = 0;
     for y in 0..vec.len() {
         for x in 0..vec[0].len() {
@@ -186,19 +111,9 @@ fn task_two(input: &[String]) -> usize {
                     == best_score
             }) {
                 paths += 1;
-                uh.insert((y, x));
             }
         }
     }
-
-    // let solve = solve_from(&vec, &dists, 0, (start, (0, 1)), end);
-    // println!("uh {} solve {}", uh.len(), solve.len());
-    // for u in uh {
-    //     if !solve.contains(&u) {
-    //         println!("{:?}", u);
-    //     }
-    // }
-    pr(&vec, &uh);
 
     paths
 }
