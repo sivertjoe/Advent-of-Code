@@ -1,7 +1,25 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::usize;
+
 const H: usize = 70 + 1;
 const W: usize = 70 + 1;
 
-fn neighbors(map: &[Vec<u8>], (y, x): (usize, usize)) -> impl Iterator<Item = (usize, usize)> {
+fn parse(input: &[String]) -> (Vec<Vec<usize>>, Vec<(usize, usize)>) {
+    let vec = vec![vec![usize::MAX; W]; H];
+
+    let bytes = input
+        .iter()
+        .map(|byte| {
+            byte.split_once(',')
+                .map(|(x, y)| (y.parse::<usize>().unwrap(), x.parse::<usize>().unwrap()))
+                .unwrap()
+        })
+        .collect::<Vec<_>>();
+    (vec, bytes)
+}
+
+fn neighbors<T>(map: &[Vec<T>], (y, x): (usize, usize)) -> impl Iterator<Item = (usize, usize)> {
     let my = map.len() as isize;
     let mx = map[0].len() as isize;
     let x = x as isize;
@@ -12,20 +30,20 @@ fn neighbors(map: &[Vec<u8>], (y, x): (usize, usize)) -> impl Iterator<Item = (u
         .map(|(y, x)| (y as usize, x as usize))
 }
 
-fn bfs(map: &[Vec<u8>]) -> Option<usize> {
+fn bfs(map: &[Vec<usize>], i: usize) -> Option<usize> {
     let mut seen =
         fxhash::FxHashSet::with_capacity_and_hasher(100, fxhash::FxBuildHasher::default());
 
-    let mut vec = Vec::with_capacity(100);
-    vec.push((0, (0, 0)));
+    let mut vec = BinaryHeap::new();
+    vec.push((Reverse(0), (0, 0)));
 
     while let Some((cost, pos)) = vec.pop() {
         if pos == (H - 1, W - 1) {
-            return Some(cost);
+            return Some(cost.0);
         }
 
-        for n in neighbors(&map, pos).filter(|next| map[next.0][next.1] != b'#') {
-            let new_cost = cost + 1;
+        for n in neighbors(&map, pos).filter(|next| map[next.0][next.1] > i) {
+            let new_cost = Reverse(cost.0 + 1);
             if seen.insert(n) {
                 vec.push((new_cost, n));
             }
@@ -36,47 +54,26 @@ fn bfs(map: &[Vec<u8>]) -> Option<usize> {
 }
 
 fn task_one(input: &[String]) -> usize {
-    let mut vec = vec![vec![b'.'; W]; H];
-
-    let bytes = input
-        .iter()
-        .map(|byte| {
-            byte.split_once(',')
-                .map(|(x, y)| (y.parse::<usize>().unwrap(), x.parse::<usize>().unwrap()))
-                .unwrap()
-        })
-        .collect::<Vec<_>>();
-    for (y, x) in bytes.into_iter().take(1024) {
-        vec[y][x] = b'#';
+    let (mut vec, bytes) = parse(input);
+    for (i, (y, x)) in bytes.into_iter().take(1024).enumerate() {
+        vec[y][x] = i + 1;
     }
 
-    bfs(&vec).unwrap()
+    bfs(&vec, 1024).unwrap()
 }
 
 fn task_two(input: &[String]) -> String {
-    let mut vec = vec![vec![b'.'; W]; H];
+    let (mut vec, bytes) = parse(input);
 
-    let bytes = input
-        .iter()
-        .map(|byte| {
-            byte.split_once(',')
-                .map(|(x, y)| (y.parse::<usize>().unwrap(), x.parse::<usize>().unwrap()))
-                .unwrap()
-        })
-        .collect::<Vec<_>>();
-
-    for (y, x) in bytes.iter().take(1024) {
-        vec[*y][*x] = b'#';
+    for (i, (y, x)) in bytes.iter().enumerate() {
+        vec[*y][*x] = i + 1;
     }
 
-    for (y, x) in bytes.into_iter().skip(1024) {
-        vec[y][x] = b'#';
-        if bfs(&vec).is_none() {
-            return format!("{},{}", x, y);
-        }
-    }
+    let ids = (1..=bytes.len()).collect::<Vec<_>>();
+    let i = ids.partition_point(|i| bfs(&vec, *i).is_some());
 
-    unreachable!()
+    let (y, x) = &bytes[i];
+    format!("{x},{y}")
 }
 
 fn main() {
