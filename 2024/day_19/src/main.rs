@@ -1,5 +1,4 @@
 use rayon::prelude::*;
-use std::collections::*;
 
 fn parse(input: &[String]) -> (Vec<String>, Vec<String>) {
     let towels = input[0].split(", ").map(|t| t.to_string()).collect();
@@ -9,19 +8,19 @@ fn parse(input: &[String]) -> (Vec<String>, Vec<String>) {
 }
 
 fn count_number_of_ways(design: &str, towels: &[String]) -> usize {
-    let mut cache = HashMap::new();
-    cache.insert("".to_string(), 1);
-    for i in (0..design.len()).rev() {
-        let s = &design[i..];
+    let n = design.len();
+    let mut dp = vec![0usize; n + 1];
+    dp[0] = 1;
+
+    for i in 1..=n {
         for towel in towels {
-            if s.starts_with(towel) {
-                let rest = &s[towel.len()..];
-                let count = *cache.get(rest).unwrap_or(&0);
-                *cache.entry(s.to_string()).or_default() += count;
+            if design[..i].ends_with(towel) {
+                dp[i] += dp[i - towel.len()];
             }
         }
     }
-    *cache.get(design).unwrap_or(&0)
+
+    dp[n]
 }
 
 fn task_one(input: &[String]) -> usize {
