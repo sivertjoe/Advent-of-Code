@@ -1,4 +1,4 @@
-use std::cmp::Reverse;
+use rayon::prelude::*;
 use std::collections::*;
 
 type P = (usize, usize);
@@ -34,23 +34,22 @@ fn neighbors<T>(map: &[Vec<T>], (y, x): (usize, usize)) -> impl Iterator<Item = 
         .map(|(y, x)| (y as usize, x as usize))
 }
 
-fn dijkstra(vec: &[Vec<u8>], start: P, end: P) -> HashMap<P, usize> {
+fn dijkstra(map: &[Vec<u8>], start: P, _end: P) -> HashMap<P, usize> {
     let mut dist = HashMap::default();
 
-    let mut heap = BinaryHeap::new();
+    let mut vec = VecDeque::new();
     dist.insert(start, 0);
-    heap.push((Reverse(0), start));
+    vec.push_back((0, start));
 
-    while let Some((cost, pos)) = heap.pop() {
-        if cost.0 > *dist.get(&pos).unwrap_or(&usize::MAX) {
+    while let Some((cost, pos)) = vec.pop_front() {
+        if cost > *dist.get(&pos).unwrap_or(&usize::MAX) {
             continue;
         }
 
-        for n in neighbors(vec, pos).filter(|next| vec[next.0][next.1] != b'#') {
-            let new_cost = cost.0 + 1;
-
+        for n in neighbors(map, pos).filter(|next| map[next.0][next.1] != b'#') {
+            let new_cost = cost + 1;
             if new_cost < *dist.get(&n).unwrap_or(&usize::MAX) {
-                heap.push((Reverse(new_cost), n));
+                vec.push_back((new_cost, n));
                 dist.insert(n, new_cost);
             }
         }
@@ -65,7 +64,6 @@ fn in_bounds(p: I, map: &[Vec<u8>]) -> bool {
 
 fn p(vec: &[Vec<u8>], curr: P, dir: I) -> Option<P> {
     let next = (curr.0 as isize + dir.0, curr.1 as isize + dir.1);
-
     in_bounds(next, vec).then(|| (next.0 as usize, next.1 as usize))
 }
 
@@ -74,27 +72,27 @@ fn manhatten_distance(p1: P, p2: P) -> usize {
 }
 
 fn get_cheatable_posistions<const N: usize>(map: &[Vec<u8>], pos: P) -> Vec<P> {
-    let mut to_return = Vec::new();
-
+    let mut to_return = Vec::with_capacity(64);
+    let directions = [(0isize, 1isize), (1, 0), (0, -1), (-1, 0)]; // up, right, down, left
     let mut seen = HashSet::new();
+    let mut vec = VecDeque::new();
+
+    vec.push_back((0, pos));
     seen.insert(pos);
 
-    let mut points = vec![pos];
-    for _ in 0..N {
-        let mut new = Vec::new();
-        for point in points {
-            for dir in [(0, -1), (0, 1), (1, 0), (-1, 0)] {
-                if let Some(next) = p(map, point, dir) {
+    while let Some((cost, pos)) = vec.pop_front() {
+        if cost < N {
+            for dir in &directions {
+                if let Some(next) = p(&map, pos, *dir) {
                     if seen.insert(next) {
+                        vec.push_back((cost + 1, next));
                         if map[next.0][next.1] != b'#' {
                             to_return.push(next);
                         }
-                        new.push(next);
                     }
                 }
             }
         }
-        points = new;
     }
 
     to_return
@@ -105,32 +103,31 @@ fn cheat_walk<const N: usize>(
     start: P,
     steps: usize,
     from_end: &HashMap<P, usize>,
-) -> Vec<usize> {
+    limit: usize,
+) -> usize {
+    let best = from_end[&start];
     let mut seen = HashSet::new();
     seen.insert(start);
 
-    let mut vec = BinaryHeap::new();
-    vec.push((Reverse(0), start));
+    let mut vec = VecDeque::new();
+    vec.push_back((0, start));
 
-    while let Some((cost, pos)) = vec.pop() {
-        if cost.0 == steps {
+    while let Some((cost, pos)) = vec.pop_front() {
+        if cost == steps {
             return get_cheatable_posistions::<N>(map, pos)
                 .into_iter()
-                .map(|p| cost.0 + manhatten_distance(pos, p) + from_end[&p])
-                .collect();
-        }
-
-        if cost.0 > steps {
-            continue;
+                .map(|p| cost + manhatten_distance(pos, p) + from_end[&p])
+                .filter(|cost| *cost < best && (best - cost) >= limit)
+                .count();
         }
 
         for n in neighbors(&map, pos) {
             if map[n.0][n.1] == b'#' {
                 continue;
             }
-            let new_cost = Reverse(cost.0 + 1);
+            let new_cost = cost + 1;
             if seen.insert(n) {
-                vec.push((new_cost, n));
+                vec.push_back((new_cost, n));
             }
         }
     }
@@ -138,44 +135,25 @@ fn cheat_walk<const N: usize>(
     unreachable!()
 }
 
-fn task_one(input: &[String]) -> usize {
+fn solve<const N: usize>(input: &[String]) -> usize {
     let (vec, start, end) = parse(input);
-
     let from_end = dijkstra(&vec, end, start);
-
     let best = from_end[&start];
 
     let limit = 100;
 
-    let mut count = 0;
-    for i in 0..best {
-        for cost in cheat_walk::<2>(&vec, start, i, &from_end) {
-            if cost < best && best - cost >= limit {
-                count += 1;
-            }
-        }
-    }
-    count
+    (0..best)
+        .into_par_iter()
+        .map(|i| cheat_walk::<N>(&vec, start, i, &from_end, limit))
+        .sum()
+}
+
+fn task_one(input: &[String]) -> usize {
+    solve::<2>(input)
 }
 
 fn task_two(input: &[String]) -> usize {
-    let (vec, start, end) = parse(input);
-
-    let from_end = dijkstra(&vec, end, start);
-
-    let best = from_end[&start];
-
-    let limit = 100;
-
-    let mut count = 0;
-    for i in 0..best {
-        for cost in cheat_walk::<20>(&vec, start, i, &from_end) {
-            if cost < best && best - cost >= limit {
-                count += 1;
-            }
-        }
-    }
-    count
+    solve::<20>(input)
 }
 
 fn main() {
