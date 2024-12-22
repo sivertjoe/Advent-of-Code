@@ -16,6 +16,15 @@ const NUMPAD_MOVES: [[&str; 11]; 11] = [
 /*A*/["<", "^<<", "<^", "^", "^^<<", "<^^", "^^", "^^^<<", "<^^^", "^^^", ""]
 ];
 
+#[rustfmt::skip]
+const KEYPAD_MOVES: [[&str; 5]; 5] = [
+/*^ 0*/["", ">", "v<", "v", "v>"], 
+/*A 1*/["<", "", "v<<", "<v", "v"], 
+/*< 2*/[">^", ">>^", "", ">", ">>"], 
+/*v 3*/["^", "^>", "<", "", ">"], 
+/*> 4*/["<^", "^", "<<", "<", ""]
+];
+
 fn is_numpad_seq_legal(start: usize, path: &str) -> bool {
     match start {
         0 => !path.starts_with("<"),
@@ -36,15 +45,6 @@ fn is_keypad_seq_legal(start: char, path: &str) -> bool {
     }
 }
 
-#[rustfmt::skip]
-const KEYPAD_MOVES: [[&str; 5]; 5] = [
-/*^ 0*/["", ">", "v<", "v", "v>"], 
-/*A 1*/["<", "", "v<<", "<v", "v"], 
-/*< 2*/[">^", ">>^", "", ">", ">>"], 
-/*v 3*/["^", "^>", "<", "", ">"], 
-/*> 4*/["^<", "^", "<<", "<", ""]
-];
-
 fn g(ch: char) -> usize {
     match ch {
         '^' => 0,
@@ -56,121 +56,75 @@ fn g(ch: char) -> usize {
     }
 }
 
-// Too high :( 96396
-
-fn dfs(s: &[u8], mut builder: String, curr: usize, res: &mut Vec<String>) {
-    match s {
-        [] => res.push(builder),
-        [ch, rest @ ..] => {
-            let n = (*ch as char).to_digit(16).unwrap() as usize;
-            let moves = NUMPAD_MOVES[curr][n];
-            let rev = moves.chars().rev().collect::<String>();
-            if is_numpad_seq_legal(curr, &rev) {
-                let mut builder = builder.clone();
-                builder.push_str(&rev);
-                builder.push('A');
-                dfs(rest, builder, n, res);
-            }
-            builder.push_str(&moves);
-            builder.push('A');
-            dfs(rest, builder, n, res);
-        }
-    }
+fn perms<F>(s: &str, filter: F) -> impl Iterator<Item = String>
+where
+    F: Fn(&String) -> bool + Copy,
+{
+    let vec = s.chars().collect::<Vec<_>>();
+    let len = vec.len();
+    vec.into_iter()
+        .permutations(len)
+        .unique()
+        .map(|v| v.into_iter().collect::<String>())
+        .filter(filter)
 }
 
-fn dfs2(s: &[u8], mut builder: String, curr: char, res: &mut HashSet<String>, best: Option<usize>) {
-    match s {
-        [] => {
-            res.insert(builder);
-        }
-        [ch, rest @ ..] => {
-            let ch = *ch as char;
-            let moves = KEYPAD_MOVES[g(curr)][g(ch)];
-
-            if let Some(best) = best {
-                if builder.len() + moves.len() > best {
-                    return;
-                }
-            }
-
-            let rev = moves.chars().rev().collect::<String>();
-            if is_keypad_seq_legal(curr, &rev) {
-                let mut builder = builder.clone();
-                builder.push_str(&rev);
-                builder.push('A');
-                dfs2(rest, builder, ch, res, best);
-            }
-            builder.push_str(&moves);
-            builder.push('A');
-            dfs2(rest, builder, ch, res, best);
-        }
-    }
-}
-
-fn bfs(s: &String) -> usize {
-    // Let's do this in steps,
-    // The firs robots needs to type, e.g., 029A
-    let mut curr = 0xAusize;
-    let mut builder = String::new();
-
-    for ch in s.chars() {
-        let n = ch.to_digit(16).unwrap() as usize;
-        let moves = NUMPAD_MOVES[curr][n];
-        builder.push_str(moves);
-        builder.push('A');
-        curr = n;
+fn _dfs(s: &str, depth: usize, cache: &mut HashMap<(String, usize), usize>) -> usize {
+    if depth == 0 {
+        return s.len();
     }
 
-    let mut possible = Vec::new();
-    dfs(s.as_bytes(), String::new(), 0xA, &mut possible);
-    let min = possible.iter().min_by_key(|s| s.len()).unwrap().len();
-    let set = possible
-        .into_iter()
-        .filter(|s| s.len() == min)
-        .collect::<HashSet<_>>();
-
-    let mut possible2 = HashSet::new();
-    for s in set {
-        dfs2(s.as_bytes(), String::new(), 'A', &mut possible2, None);
+    if let Some(cached) = cache.get(&(s.to_string(), depth)) {
+        return *cached;
     }
-    let min = possible2.iter().min_by_key(|s| s.len()).unwrap().len();
-    let set2 = possible2
-        .into_iter()
-        .filter(|s| s.len() == min)
-        .collect::<HashSet<_>>();
 
-    let mut possible3 = HashSet::new();
-    let mut amin = Some(usize::MAX);
-    for s in set2 {
-        dfs2(s.as_bytes(), String::new(), 'A', &mut possible3, amin);
-        let min = possible3.iter().min_by_key(|s| s.len()).unwrap().len();
-        amin = amin.map(|amin| amin.min(min));
+    let mut sum = 0;
+    for (from, to) in std::iter::once('A').chain(s.chars()).tuple_windows() {
+        let moves = KEYPAD_MOVES[g(from)][g(to)];
+
+        sum += perms(moves, |s| is_keypad_seq_legal(from, s))
+            .map(|s| _dfs(&format!("{s}A"), depth - 1, cache))
+            .min()
+            .unwrap();
     }
-    let min = possible3.iter().min_by_key(|s| s.len()).unwrap().len();
-    min
+    cache.insert((s.to_string(), depth), sum);
+    sum
 }
 
-fn part2(s: &String) -> usize {
-    0
-}
-
-fn number_part(s: &String) -> usize {
-    let s: String = s.chars().filter(|ch| ch.is_digit(10)).collect();
-    let num = s.parse::<usize>().unwrap();
-    num
-}
-
-fn task_one(input: &[String]) -> usize {
-    input
-        .into_iter()
-        .map(|line| (line, bfs(line), number_part(line)))
-        .inspect(|(line, len, num)| println!("{line}: {len} * {num}"))
-        .map(|(line, len, num)| len * num)
+fn dfs(input: &str, depth: usize, cache: &mut HashMap<(String, usize), usize>) -> usize {
+    std::iter::once('A')
+        .chain(input.chars())
+        .map(|ch| ch.to_digit(16).unwrap() as usize)
+        .tuple_windows()
+        .map(|(a, b)| {
+            let moves = NUMPAD_MOVES[a][b];
+            perms(moves, |s| is_numpad_seq_legal(a, s))
+                .map(|s| _dfs(&format!("{s}A"), depth, cache))
+                .min()
+                .unwrap()
+        })
         .sum()
 }
 
+fn solve<const N: usize>(input: &[String]) -> usize {
+    let mut cache = HashMap::<(String, usize), usize>::default();
+    input
+        .iter()
+        .map(|line| number_part(line) * dfs(line, N, &mut cache))
+        .sum()
+}
+
+fn number_part(s: &str) -> usize {
+    let s: String = s.chars().filter(|ch| ch.is_ascii_digit()).collect();
+    s.parse::<usize>().unwrap()
+}
+
+fn task_one(input: &[String]) -> usize {
+    solve::<2>(input)
+}
+
 fn task_two(input: &[String]) -> usize {
-    unimplemented!()
+    solve::<25>(input)
 }
 
 fn main() {
