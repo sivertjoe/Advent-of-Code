@@ -1,5 +1,4 @@
 use rayon::prelude::*;
-use std::collections::*;
 
 fn mix(secret: usize, num: usize) -> usize {
     secret ^ num
@@ -32,20 +31,11 @@ fn task_one(input: &[String]) -> usize {
         .sum()
 }
 
-fn num_bananas(map: &HashMap<A, usize>, seq: A) -> usize {
-    *map.get(&seq).unwrap_or(&0)
-}
-
-type A = [isize; 4];
-fn calc_sum(nums: &[HashMap<A, usize>], seq: A) -> usize {
-    nums.into_iter().map(|num| num_bananas(&num, seq)).sum()
-}
-
 fn task_two(input: &[String]) -> usize {
-    let nums = input
-        .iter()
+    let maps = input
+        .par_iter()
         .map(|line| {
-            let mut vec = Vec::new();
+            let mut vec = Vec::with_capacity(2000);
             let mut num = line.parse::<usize>().unwrap();
             for _ in 0..2000 {
                 let n = next(num);
@@ -54,7 +44,8 @@ fn task_two(input: &[String]) -> usize {
                 num = n;
             }
 
-            let mut map = HashMap::with_capacity(vec.len() * 4);
+            let mut map =
+                fxhash::FxHashMap::with_capacity_and_hasher(2000, fxhash::FxBuildHasher::default());
             for w in vec.windows(4) {
                 let seq = [w[0].1, w[1].1, w[2].1, w[3].1];
                 let num = w[3].0;
@@ -66,24 +57,16 @@ fn task_two(input: &[String]) -> usize {
         })
         .collect::<Vec<_>>();
 
-    let max = (-9..=9)
-        .into_par_iter()
-        .map(|w| {
-            let mut max = 0;
-            for z in -9..=9 {
-                for y in -9..=9 {
-                    for x in -9..=9 {
-                        let seq = [w, z, y, x];
-                        let res = calc_sum(&nums, seq);
-                        max = max.max(res);
-                    }
-                }
+    maps.into_par_iter()
+        .reduce(fxhash::FxHashMap::default, |mut map, other| {
+            for (k, v) in other {
+                *map.entry(k).or_default() += v;
             }
-            max
+            map
         })
+        .into_values()
         .max()
-        .unwrap();
-    max
+        .unwrap()
 }
 
 fn main() {
