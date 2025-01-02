@@ -79,6 +79,34 @@ fn convert(map: &HashMap<String, bool>, ch: char) -> isize {
     isize::from_str_radix(&s, 2).unwrap()
 }
 
+#[allow(dead_code)]
+fn display(gates: &[Gate]) {
+    use petgraph::dot::Dot;
+    use petgraph::prelude::*;
+
+    let mut graph = Graph::new_undirected();
+
+    let mut nodes = HashMap::new();
+
+    for gate in gates {
+        let a = *nodes
+            .entry(&gate.in1)
+            .or_insert_with(|| graph.add_node(&gate.in1));
+        let b = *nodes
+            .entry(&gate.in2)
+            .or_insert_with(|| graph.add_node(&gate.in2));
+
+        let out = *nodes
+            .entry(&gate.out)
+            .or_insert_with(|| graph.add_node(&gate.out));
+
+        graph.add_edge(a, out, format!("{:?}", gate.oper));
+        graph.add_edge(b, out, format!("{:?}", gate.oper));
+    }
+    let dot = Dot::new(&graph);
+    println!("{}", dot);
+}
+
 fn run(map: HashMap<String, bool>, vec: Vec<Gate>) -> HashMap<String, bool> {
     let mut vec = vec;
     let mut map = map;
@@ -184,6 +212,10 @@ fn task_two(input: &[String]) -> String {
 
 fn main() {
     let input = read_input(get_input_file());
+
+    //let (_map, vec) = parse(&input);
+    //display(&vec);
+
     time(Task::One, task_one, &input);
     time(Task::Two, task_two, &input);
 }
