@@ -5,4 +5,7 @@
 **/test
 **/.env
 **/.answers
+**/main
+**/.build
+**/*.dSYM/
 
