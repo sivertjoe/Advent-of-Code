@@ -8,25 +8,11 @@
 [![AoC 2022](https://img.shields.io/badge/2022-★_50-44cc11)](https://adventofcode.com/2022)
 [![AoC 2023](https://img.shields.io/badge/2023-★_50-44cc11)](https://adventofcode.com/2023)
 [![AoC 2024](https://img.shields.io/badge/2024-★_50-44cc11)](https://adventofcode.com/2024)
+[![AoC 2025](https://img.shields.io/badge/2025-★_0-9f9f9f)](https://adventofcode.com/2025)
 
 # Solutions for Advent of Code
-### [2015](https://github.com/sivertjoe/Advent-of-Code/tree/master/2015)
-### [2016](https://github.com/sivertjoe/Advent-of-Code/tree/master/2016)
-### [2017](https://github.com/sivertjoe/Advent-of-Code/tree/master/2017)
-### [2018](https://github.com/sivertjoe/Advent-of-Code/tree/master/2018)
-### [2019](https://github.com/sivertjoe/Advent-of-Code/tree/master/2019)
-### [2020](https://github.com/sivertjoe/Advent-of-Code/tree/master/2020)
-### [2021](https://github.com/sivertjoe/Advent-of-Code/tree/master/2021)
-### [2022](https://github.com/sivertjoe/Advent-of-Code/tree/master/2022)
-### [2023](https://github.com/sivertjoe/Advent-of-Code/tree/master/2023)
-### [2024](https://github.com/sivertjoe/Advent-of-Code/tree/master/2024)
+### [2015](https://github.com/sivertjoe/Advent-of-Code/tree/master/2015) [2016](https://github.com/sivertjoe/Advent-of-Code/tree/master/2016) [2017](https://github.com/sivertjoe/Advent-of-Code/tree/master/2017)
+### [2018](https://github.com/sivertjoe/Advent-of-Code/tree/master/2018) [2019](https://github.com/sivertjoe/Advent-of-Code/tree/master/2019) [2020](https://github.com/sivertjoe/Advent-of-Code/tree/master/2020)
+### [2021](https://github.com/sivertjoe/Advent-of-Code/tree/master/2021) [2022](https://github.com/sivertjoe/Advent-of-Code/tree/master/2022) [2023](https://github.com/sivertjoe/Advent-of-Code/tree/master/2023)
+### [2024](https://github.com/sivertjoe/Advent-of-Code/tree/master/2024) [2025](https://github.com/sivertjoe/Advent-of-Code/tree/master/2025)
 
-## `count.rs`
-Tallies the  performance of part one and two for each day and displays information about the overall performance.
-A file `compile.sh` that compiles a program given a day, (e.g `./compile.sh day_01`) must be present in the year folder.
-Compile and run the count program:
-
-```bash
-rustc count.rs
-./count 2018
-```
