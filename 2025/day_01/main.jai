@@ -1,70 +1,48 @@
 #import "Basic";
 #import "String";
 #import "File";
+#import "Math";
 
-task_one :: (lines: []string) -> int {
-    N :: 100;
-    count := 0;
-    start := 50;
-    for line : lines {
-        if line == "" continue;
-        builder: String_Builder;
-        init_string_builder(*builder);
+mod :: (a: int, n: int) -> int {
+    return ((a % n) + n) % n;
+}
 
-        for ch : line {
-            if it_index == 0 continue;
-            append(*builder, ch);
-        }
-        s := builder_to_string(*builder);
-        num := string_to_int(s);
+parse_line :: (line: string) -> int {
+    builder: String_Builder;
+    init_string_builder(*builder);
+    for line {
+        if it_index == 0 continue;
+        append(*builder, it);
+    }
+    s := builder_to_string(*builder);
+    num := string_to_int(s);
 
-        if line[0] == 76 {
-            start = ((start + num) % N + N) % N;
-        } else {
-            start = ((start - num) % N + N) % N;
-        }
-        if start == 0 {
-            count += 1;
-        }
+    return ifx line[0] == #char "L" then -num else num;
+}
+
+solve :: (lines: []string, N := 100) -> part1: int, part2: int {
+    p1, p2: int;
+    dial : = 50;
+    for lines {
+        if it == "" continue;
+        num := parse_line(it);
+        raw := dial + num;
+        p1 +=  xx !(raw % N);
+        p2 += (abs(raw) / N) + xx (dial != 0 && raw <= 0);
+        dial = mod(raw, N);
     }
 
-    return count;
+    return p1, p2;
+}
+
+task_one :: (lines: []string) -> int {
+    p1, _ := solve(lines);
+    return p1;
 }
 
 task_two :: (lines: []string) -> int {
-    N :: 100;
-    count := 0;
-    start := 50;
-    for line : lines {
-        if line == "" continue;
-        builder: String_Builder;
-        init_string_builder(*builder);
-
-        for ch : line {
-            if it_index == 0 continue;
-            append(*builder, ch);
-        }
-        s := builder_to_string(*builder);
-        num := string_to_int(s);
-
-        if line[0] == 76 {
-            for 1..num {
-                start = ((start - 1) % N + N) % N;
-                if start == 0 {
-                    count += 1;
-                }
-            }
-        } else {
-            for 1..num {
-                start = ((start + 1) % N + N) % N;
-                if start == 0 {
-                    count += 1;
-                }
-            }
-        }
-    }
-
-    return count;
+    _, p2 := solve(lines);
+    return p2;
 }
 main :: () {
     args := get_command_line_arguments();
