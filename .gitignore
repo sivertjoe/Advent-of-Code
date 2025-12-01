@@ -10,3 +10,4 @@
 **/*.dSYM/
 **/*.exe
 **/*.pdb
+**/.languages.toml
