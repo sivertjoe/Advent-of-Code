@@ -6,9 +6,10 @@ task_one :: (lines: []string) -> int {
     return 0;
 }
 
-task_two :: (n: []string) -> int {
+task_two :: (lines: []string) -> int {
     return 0;
 }
+
 main :: () {
     args := get_command_line_arguments();
     input := ifx args.count >= 2 then args[1] else "input";
