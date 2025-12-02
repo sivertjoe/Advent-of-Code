@@ -30,24 +30,53 @@ parse :: (lines: []string) -> []Range {
     return ranges;
 }
 
-num_is_bad :: (s: string) -> bool {
-    mid := (s.count / 2);
+invalid_id1 :: (n: int) -> bool {
+    if n >= 10 && n <= 99        
+        return n % 11 == 0;
+    if n >= 1_000 && n <= 9_999 
+        return n % 101 == 0;
+    if n >= 100_000 && n <= 999_999 
+        return n % 1_001 == 0;
+    if n >= 10_000_000 && n <= 99_999_999
+        return n % 10_001 == 0;
+    if n >= 1_000_000_000 && n <= 9_999_999_999
+        return n % 100_001 == 0;
 
-    for idx  : 0..mid-1 {
-        if s[idx] != s[mid + idx] return false;
-    }
-    return true;
+    return false;
 }
 
-bad_ranges :: (range: Range) -> int {
+invalid_id2 :: (n: int) -> bool {
+    if n >= 10 && n <= 99 
+        return n % 11 == 0;
+    if n >= 100 && n <= 999 
+        return n % 111 == 0;
+    if n >= 1_000 && n <= 9_999
+        return n % 101 == 0 || n % 1_111 == 0;
+    if n >= 10_000 && n <= 99_999
+        return n % 11_111 == 0;
+    if n >= 100_000 && n <= 999_999
+        return n % 1_001 == 0  || n % 10_101 == 0  || n % 111_111 == 0;
+    if n >= 1_000_000 && n <= 9_999_999
+        return n % 1_111_111 == 0;
+    if n >= 10_000_000 && n <= 99_999_999
+        return n % 10_001 == 0 || n % 1_010_101 == 0 || n % 11_111_111 == 0;
+    if n >= 100_000_000 && n <= 999_999_999
+        return n % 1_001_001 == 0 || n % 111_111_111 == 0;
+    if n >= 1_000_000_000 && n <= 9_999_999_999
+        return n % 100_001 == 0 || n % 101_010_101 == 0 || n % 1_111_111_111 == 0;
+
+    return false;
+}
+
+solve :: (lines: []string, invalid_id: (_: int) -> bool) -> int {
+    ranges := parse(lines);
+    defer array_free(ranges);
+
     count := 0;
 
-    for range.start_id..range.end_id {
-        s := tprint("%", it);
-        if s.count % 2 != 0 continue;
-
-        if num_is_bad(s) {
-            count += it;
+    for range : ranges {
+        for range.start_id..range.end_id {
+            if invalid_id(it) count += it;
         }
     }
 
@@ -55,62 +84,12 @@ bad_ranges :: (range: Range) -> int {
 }
 
 task_one :: (lines: []string) -> int {
-    ranges := parse(lines);
-    defer array_free(ranges);
-
-    count := 0;
-
-    for range : ranges {
-        count += bad_ranges(range);
-    }
-
-    return count;
+    return solve(lines, invalid_id1);
 }
 
-num_is_bad2 :: (s: string, root: int) -> bool {
-    for i : 1..cast(int)root {
-        if s.count % i != 0 || s.count == i continue;
-
-
-        pat := slice(s, 0, i);
-
-        start := 0;
-        while start < s.count {
-            if slice(s, 0 + start, i) != pat  continue i;
-            start += i;
-        }
-        return true;
-    }
-
-    return false;
-}
-
-bad_ranges2 :: (range: Range) -> int {
-    count := 0;
-
-    for range.start_id..range.end_id {
-        s := tprint("%", it);
-        root := cast(int)sqrt(cast(float)it);
-
-        if num_is_bad2(s, root) {
-            count += it;
-        }
-    }
-
-    return count;
-}
 
 task_two :: (lines: []string) -> int {
-    ranges := parse(lines);
-    defer array_free(ranges);
-
-    count := 0;
-
-    for range : ranges {
-        count += bad_ranges2(range);
-    }
-
-    return count;
+    return solve(lines, invalid_id2);
 }
 
 main :: () {
