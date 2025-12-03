@@ -20,6 +20,14 @@ main :: () {
         exit(0);
     }
     arg := split(text, "\n");
+    defer array_free(arg);
+    for * arg {
+        if <<it == "" {
+            continue;
+        }
+        new := trim(<<it);
+        <<it = new;
+    }
 
     time(arg, .One, task_one);
     time(arg, .Two, task_two);
