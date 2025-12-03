@@ -2,16 +2,17 @@
 #import "String";
 #import "File";
 
-solve :: (lines: []string, N: int) ->  u64 {
+solve :: (lines: []string, $$N: int) ->  u64 {
     sum: u64 = 0;
 
     a: [..]int;
-    array_free(a);
+    a.allocator = temp;
     for 0..N-1 array_add(*a, it);
-
 
     for line : lines {
         if line == "" continue;
+
+        for 0..N-1 a[it] = it;
 
         for num : line {
             for k : 0..N-1 {
