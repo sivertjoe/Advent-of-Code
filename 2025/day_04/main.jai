@@ -2,7 +2,7 @@
 #import "String";
 #import "File";
 
-Tile :: enum {
+Tile :: enum u8 {
     Paper;
     Empty;
 }
@@ -28,8 +28,8 @@ parse :: (lines: []string) -> [..][..]Tile {
     return tiles;
 }
 
-neighbors :: (tiles: [..][..]Tile, y: int, x: int) -> [][2]int {
-    ns: [..][2]int;
+neighbors :: (tiles: [..][..]Tile, y: int, x: u8) -> [][2]u8 {
+    ns: [..][2]u8;
     ns.allocator = temp;
 
     for yy : -1..1 {
@@ -39,14 +39,15 @@ neighbors :: (tiles: [..][..]Tile, y: int, x: int) -> [][2]int {
             ny := y + yy;
             nx := x + _xx;
             if ny >= 0 && ny < tiles.count && nx >= 0 && nx < tiles[0].count {
-                array_add(*ns, int.[ny, nx]);
+                array_add(*ns, u8.[xx ny, xx nx]);
             }
         }
     }
 
     return ns;
 }
-count_neightbors_papers :: (tiles: [..][..]Tile, y: int, x: int) -> int {
+
+count_neightbors_papers :: (tiles: [..][..]Tile, y: u8, x: u8) -> int {
     ns := neighbors(tiles, y, x);
     count := 0;
     for ns {
@@ -57,14 +58,14 @@ count_neightbors_papers :: (tiles: [..][..]Tile, y: int, x: int) -> int {
     return count;
 }
 
-mark_to_remove :: (tiles: [..][..]Tile) -> [..][2]int {
-    marked: [..][2]int;
+mark_to_remove :: (tiles: [..][..]Tile) -> [..][2]u8 {
+    marked: [..][2]u8;
     marked.allocator = temp;
 
     for line, y : tiles {
         for tile, x : line {
-            if tile == Tile.Paper && count_neightbors_papers(tiles, y, x) < 4 {
-                array_add(*marked, int.[y, x]);
+            if tile == Tile.Paper && count_neightbors_papers(tiles, xx y, xx x) < 4 {
+                array_add(*marked, u8.[xx y, xx x]);
             }
         }
     }
@@ -85,6 +86,10 @@ task_one :: (lines: []string) -> int {
 
 task_two :: (lines: []string) -> int {
     tiles := parse(lines);
+    defer {
+        for tiles array_free(it);
+        array_free(tiles);
+    }
 
     count := 0;
     while true {
