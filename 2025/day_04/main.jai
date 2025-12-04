@@ -30,6 +30,7 @@ parse :: (lines: []string) -> [..][..]Tile {
 
 neighbors :: (tiles: [..][..]Tile, y: int, x: int) -> [][2]int {
     ns: [..][2]int;
+    ns.allocator = temp;
 
     for yy : -1..1 {
         for _xx : -1..1 {
@@ -47,98 +48,56 @@ neighbors :: (tiles: [..][..]Tile, y: int, x: int) -> [][2]int {
 }
 count_neightbors_papers :: (tiles: [..][..]Tile, y: int, x: int) -> int {
     ns := neighbors(tiles, y, x);
-    // print("ns = %\n", ns);
     count := 0;
     for ns {
-        y := it[0];
-        x := it[1];
-
-        if tiles[y][x] == Tile.Paper {
+        if tiles[it[0]][it[1]] == Tile.Paper {
             count += 1;
         }
-        // print("tile[%][%] = %\n", y, x, tiles[y][x]);
     }
     return count;
+}
+
+mark_to_remove :: (tiles: [..][..]Tile) -> [..][2]int {
+    marked: [..][2]int;
+    marked.allocator = temp;
+
+    for line, y : tiles {
+        for tile, x : line {
+            if tile == Tile.Paper && count_neightbors_papers(tiles, y, x) < 4 {
+                array_add(*marked, int.[y, x]);
+            }
+        }
+    }
+
+    return marked;
 }
 
 task_one :: (lines: []string) -> int {
     tiles := parse(lines);
-
-    debug: [..][2]int;
-
-    // print("count = %\n", count_neightbors_papers(tiles, 0, 2));
-    // return 0;
-    count := 0;
-    for line, y : tiles {
-        for tile, x : line {
-            if tile == Tile.Paper && count_neightbors_papers(tiles, y, x) < 4 {
-                // print("% %\n", y, x);
-                count += 1;
-                array_add(*debug, int.[y, x]);
-            }
-        }
+    defer {
+        for tiles array_free(it);
+        array_free(tiles);
     }
 
-    for line, y : tiles {
-        for tile, x : line {
-            if tile == Tile.Paper {
-                for debug {
-                    if y == it[0] && x == it[1] {
-                        print("x");
-                        continue tile;
-                    }
-                }
-                print("@");
-            } else {
-                print(".");
-            }
-        }
-        print("\n");
-    }
-
-    for tiles array_free(it);
-    array_free(tiles);
-    return count;
+    marked := mark_to_remove(tiles);
+    return marked.count;
 }
-
 
 task_two :: (lines: []string) -> int {
     tiles := parse(lines);
 
-    debug: [..][2]int;
-
-    // print("count = %\n", count_neightbors_papers(tiles, 0, 2));
-    // return 0;
     count := 0;
-    for line, y : tiles {
-        for tile, x : line {
-            if tile == Tile.Paper && count_neightbors_papers(tiles, y, x) < 4 {
-                // print("% %\n", y, x);
-                count += 1;
-                array_add(*debug, int.[y, x]);
-            }
+    while true {
+        marked := mark_to_remove(tiles);
+        if marked.count == 0 break;
+
+        count += marked.count;
+        for marked {
+            tiles[it[0]][it[1]] = Tile.Empty;
         }
+        reset_temporary_storage();
     }
 
-    for line, y : tiles {
-        for tile, x : line {
-            if tile == Tile.Paper {
-                for debug {
-                    if y == it[0] && x == it[1] {
-                        print("x");
-                        continue tile;
-                    }
-                }
-                print("@");
-            } else {
-                print(".");
-            }
-        }
-        print("\n");
-    }
-
-    for tiles array_free(it);
-    array_free(tiles);
     return count;
 }
 
