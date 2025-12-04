@@ -11,3 +11,4 @@
 **/*.exe
 **/*.pdb
 **/.languages.toml
+**/.parse.toml
