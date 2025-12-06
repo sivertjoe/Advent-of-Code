@@ -2,109 +2,104 @@
 #import "String";
 #import "File";
 
-parse :: (lines: []string) -> [..][..]string {
-    ret: [..][..]string;
-
-    for lines {
-        s := trim(it);
-        if s == "" continue;
-        arr:[..]string;
-
-        for val : split(s, " ") {
-            if val != "" {
-                array_add(*arr, val);
-            }
-        }
-        array_add(*ret, arr);
-    }
-    return ret;
-}
-
-get :: (op: string) -> (int, (x: int, y: int) -> int) {
-    add :: (a: int, b: int)  -> int { return a + b; };
-    prod :: (a: int, b: int) -> int { return a * b; };
-
-    if op == "*" 
-        return 1, prod;
-    else if op == "+"
-        return 0, add;
-
-    assert(false);
-}
-
-task_one :: (lines: []string) -> int {
-    sheet := parse(lines);
-
-    count := 0;
-    for op_idx : 0..sheet[0].count - 1 {
-        op := sheet[sheet.count - 1][op_idx];
-
-        acc, func := get(op);
-        for num_idx : 0..sheet.count - 2 {
-            num := string_to_int(sheet[num_idx][op_idx]);
-            acc = func(acc, num);
-        }
-        count += acc;
-    }
-    return count;
-}
-
 Op :: struct {
     acc: int;
     func: (x: int, y: int) -> int;
 }
-get2 :: (op: u8) -> Op {
+
+get_ops :: (lines: []string) -> [..]Op {
     add :: (a: int, b: int)  -> int { return a + b; };
     prod :: (a: int, b: int) -> int { return a * b; };
+    ops: [..]Op;
 
-    if op == #char "*" 
-        return Op.{1, prod};
-    else if op == #char "+"
-        return Op.{0, add};
+    for 0..lines[0].count - 1 {
+        ch := lines[lines.count - 1][it];
 
-    assert(false);
+        if ch == {
+            case #char "*";
+                array_add(*ops, Op.{1, prod});
+            case #char "+";
+                array_add(*ops, Op.{0, add});
+        }
+    }
+
+    return ops;
 }
 
-task_two :: (lines: []string) -> int {
+parse1 :: (lines: []string) -> [..][..]int {
+    temp: [..][..]int;
+
+    for 0..lines.count - 2 {
+        line := lines[it];
+        arr: [..]int;
+        for val : split(line, " ") {
+            if val != "" array_add(*arr, string_to_int(val));
+        }
+        array_add(*temp, arr);
+    }
+
+    transpose :: (mat: [..][..]int) -> [..][..]int {
+        new: [..][..]int;
+        for y : 0..mat[0].count - 1 {
+            arr: [..]int;
+            for x : 0..mat.count - 1 {
+                array_add(*arr, mat[x][y]);
+            }
+            array_add(*new, arr);
+        }
+        return new;
+    }
+
+    return transpose(temp);
+}
+
+parse2 :: (lines: []string) -> [..][..]int {
     z: u8 = #char "0";
 
     list: [..][..]int;
-    opers: [..]Op;
-
     for x : 0..lines[0].count -1 {
-        num: int;
+        num := 0;
         pow := 1;
         for yy : 0..lines.count -1 {
             y := lines.count - 1 - yy;
             ch := lines[y][x];
 
+            if ch == #char " " continue;
+
             if ch == #char "*" || ch == #char "+" {
-                array_add(*opers, get2(ch));
                 lst: [..]int;
                 array_add(*list, lst);
-            } else {
-                if ch != #char " " {
-                    num = num + (ch - z) * pow;
-                    pow *= 10;
-                }
-            }
+                continue;
+            } 
+
+            num = num + (ch - z) * pow;
+            pow *= 10;
         }
-        if num != 0 {
-            array_add(*list[list.count -1], num);
-        }
+        if num != 0 array_add(*list[list.count -1], num);
     }
 
-    assert(opers.count == list.count);
-    count := 0;
-    for 0..opers.count - 1 {
-        op := opers[it];
+    return list;
+}
 
-        for num : list[it] {
-            op.acc = op.func(op.acc, num);
+solve :: (lines: []string, parse: (_: []string) -> ([..][..]int)) -> int {
+    ops := get_ops(lines);
+    nums := parse(lines);
+    count := 0;
+    for * ops {
+        for num : nums[it_index] {
+            it.acc = it.func(it.acc, num);
         }
-        count += op.acc;
+        count += it.acc;
     }
     return count;
+}
+
+task_one :: (lines: []string) -> int {
+    return solve(lines, parse1);
+}
+
+task_two :: (lines: []string) -> int {
+    return solve(lines, parse2);
 }
 
 main :: () {
@@ -119,13 +114,12 @@ main :: () {
     arg := split(text, "\n");
     defer array_free(arg);
     for * arg {
-        if <<it == "" {
-            continue;
-        }
+        if <<it == "" remove it;
     }
-    arg.count -= 1;
 
+    context.allocator = temp;
     time(arg, .One, task_one);
+    reset_temporary_storage();
     time(arg, .Two, task_two);
 }
 
