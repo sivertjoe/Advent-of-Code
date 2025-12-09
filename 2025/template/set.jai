@@ -21,6 +21,7 @@ Set :: struct(
     }
 
     table: Table(Value_Type, void, hash_function, cmp_function);
+    count: int;
 }
 
 set_free :: (set: *Set) {
@@ -37,11 +38,17 @@ set_clone :: (set: *Set($T)) -> Set(T) {
 
 set_add :: (set: *Set, item: set.Value_Type) -> bool {
     _, new := find_or_add(*set.table, item);
+    if new {
+        set.count += 1;
+    }
     return new;
 }
 
 set_remove :: (set: *Set, item: set.Value_Type) -> bool {
     contains := table_remove(*set.table, item);
+    if contains {
+        set.count -= 1;
+    }
     return contains;
 }
 
