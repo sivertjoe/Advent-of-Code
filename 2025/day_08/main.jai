@@ -10,6 +10,12 @@ Point :: struct {
     z: u64;
 }
 
+PairDist :: struct {
+    p1: u8;
+    p2: u8;
+    dist: u32;
+}
+
 fold64 :: (v: u64) -> u32 {
     lo := v & 0xFFFFFFFF;
     hi := (v >> 32) & 0xFFFFFFFF;
@@ -54,16 +60,15 @@ parse :: (lines: []string) -> [..]Point {
     return ret;
 }
 
-calc_dists :: (points: []Point) -> [..]Point {
-    dists: [..]Point;
+calc_dists :: (points: []Point) -> [..]PairDist {
+    dists: [..]PairDist;
+    array_reserve(*dists, points.count * (points.count - 1) / 2);
+
     for i : 0..points.count - 1 {
         for j : i + 1..points.count - 1 {
             dist := point_dist(points[i], points[j]);
-            key: Point;
-            key.x = xx i;
-            key.y = xx j;
-            key.z = xx dist;
-            array_add(*dists, key);
+            pair := PairDist.{xx i, xx j, xx dist};
+            array_add(*dists, pair);
         }
     }
 
@@ -99,7 +104,7 @@ solve :: (lines: []string, part_1: bool) -> u64 {
     points := parse(lines);
 
     dists := calc_dists(points);
-    quick_sort(dists, (p) => p.z);
+    quick_sort(dists, (p) => p.dist);
 
     parent: [..]int;
     size: [..]int;
@@ -113,8 +118,8 @@ solve :: (lines: []string, part_1: bool) -> u64 {
 
     for dists {
         if it_index == N-1 && part_1 break;
-        ra := find(parent, xx it.x);
-        rb := find(parent, xx it.y);
+        ra := find(parent, xx it.p1);
+        rb := find(parent, xx it.p2);
 
         if ra != rb {
             union_sets(parent, size, ra, rb);
@@ -123,8 +128,8 @@ solve :: (lines: []string, part_1: bool) -> u64 {
         root := find(parent, 0);
 
         if size[root] == points.count {
-            a := points[it.x];
-            b := points[it.y];
+            a := points[it.p1];
+            b := points[it.p2];
             return a.x * b.x;
         }
     }
