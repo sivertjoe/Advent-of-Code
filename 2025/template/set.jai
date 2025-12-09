@@ -1,8 +1,26 @@
 #import "Basic";
 #import "Hash_Table";
+Hash :: #import "Hash";
 
-Set :: struct(Value_Type: Type) {
-    table: Table(Value_Type, void);
+Set :: struct(
+    Value_Type: Type,
+    given_hash_function: (t: Value_Type) -> u32 = null,
+    given_cmp_function: (a: Value_Type, b: Value_Type) -> bool = null
+) {
+
+    #if given_hash_function {
+        hash_function :: given_hash_function;
+    } else {
+        hash_function :: x => Hash.get_hash(x);
+    }
+
+    #if given_cmp_function {
+        cmp_function :: given_cmp_function;
+    } else {
+        cmp_function :: (a: Value_Type, b: Value_Type) -> bool { return a == b; };
+    }
+
+    table: Table(Value_Type, void, hash_function, cmp_function);
 }
 
 set_free :: (set: *Set) {
@@ -46,8 +64,13 @@ for_expansion :: (set: *Set, body: Code, flags: For_Flags) #expand {
     }
 }
 
-set_union :: (set1: *Set($T), set2: *Set(T)) -> Set(T) {
-    new: Set(T);
+set_union :: (set1: *Set, set2: *Set) -> Set(set1.Value_Type, set1.hash_function, set1.cmp_function) {
+    assert(set1.Value_Type == set2.Value_Type);
+    new: Set(
+        set1.Value_Type,
+        set1.hash_function,
+        set1.cmp_function
+    );
 
     for set1 {
         set_add(*new, it);
