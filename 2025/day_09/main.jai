@@ -119,7 +119,7 @@ point_in_or_on_polygon :: (p: Point, vertices: []Point) -> bool {
     return inside;
 }
 
-move_is_allowed :: (old_p: Point, new_p: Point, polygon: []Point) -> bool {
+move_is_allowed :: (old_p: Point, new_p: Point, polygon: []Point, edges: []Segment) -> bool {
     if !point_in_or_on_polygon(old_p, polygon) {
         return false;
     }
@@ -127,7 +127,6 @@ move_is_allowed :: (old_p: Point, new_p: Point, polygon: []Point) -> bool {
         return false;
     }
 
-    edges := polygon_edges(polygon);
     for edges {
         if segments_cross_properly(old_p, new_p, it.a, it.b) {
             return false;
@@ -137,7 +136,7 @@ move_is_allowed :: (old_p: Point, new_p: Point, polygon: []Point) -> bool {
     return true;
 }
 
-is_points_all_inside :: (a: Point, b: Point, polygon: []Point) -> bool {
+is_points_all_inside :: (a: Point, b: Point, polygon: []Point, edges: []Segment) -> bool {
     min_x := min(a.x, b.x);
     max_x := max(a.x, b.x);
 
@@ -150,16 +149,16 @@ is_points_all_inside :: (a: Point, b: Point, polygon: []Point) -> bool {
     bot_left := Point.{min_x, max_y}; // bot left
     bot_right := Point.{max_x, max_y}; // bot right
 
-    if !move_is_allowed(top_left, top_right, polygon) {
+    if !move_is_allowed(top_left, top_right, polygon, edges) {
         return false;
     }
-    if !move_is_allowed(bot_left, bot_right, polygon) {
+    if !move_is_allowed(bot_left, bot_right, polygon, edges) {
         return false;
     }
-    if !move_is_allowed(top_left, bot_left, polygon) {
+    if !move_is_allowed(top_left, bot_left, polygon, edges) {
         return false;
     }
-    if !move_is_allowed(top_right, bot_right, polygon) {
+    if !move_is_allowed(top_right, bot_right, polygon, edges) {
         return false;
     }
 
@@ -169,11 +168,12 @@ is_points_all_inside :: (a: Point, b: Point, polygon: []Point) -> bool {
 
 task_two :: (lines: []string) -> int {
     points := parse(lines);
+    edges := polygon_edges(points);
     m := 0;
 
     for i : 0..points.count - 1 {
         for j : i + 1..points.count - 1{
-            if is_points_all_inside(points[i], points[j], points) {
+            if is_points_all_inside(points[i], points[j], points, edges) {
                 m = max(m, point_square(points[i], points[j]));
             }
         }
