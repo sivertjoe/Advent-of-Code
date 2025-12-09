@@ -3,26 +3,35 @@
 #import "File";
 #import "Math";
 #import "Sort";
-#load "../template/set.jai";
 
 Point :: struct {
-    y: u32;
-    x: u32;
-    z: u32;
+    x: u64;
+    y: u64;
+    z: u64;
 }
+
+fold64 :: (v: u64) -> u32 {
+    lo := v & 0xFFFFFFFF;
+    hi := (v >> 32) & 0xFFFFFFFF;
+    return cast(u32)(lo ^ hi);
+}
+
 
 point_hash :: (p: Point) -> u32 {
-    hash: u32 = 2166136261;
-    prime: u32 = 16777619;
-
-    return (((((hash ^ p.x) * prime) ^ p.y) * prime) ^ p.z) * prime;
+    h: u64;
+    h = p.x * 11400714819323198485;
+    h ^= p.y * 14029467366897019727;
+    h ^= p.z *  1609587929392839161;
+    return fold64(h);
 }
+
 
 point_eq :: (a: Point, b: Point) -> bool { return a.x == b.x && a.y == b.y && a.z == b.z; }
 
-point_dist :: (a: Point, b: Point) -> int {
-    dst :: (a: u32, b: u32) -> int {
-        return xx pow((cast(float) a - cast(float) b), 2);
+point_dist :: (a: Point, b: Point) -> u64 {
+    dst :: (a: u64, b: u64) -> u64 {
+        d := a - b;
+        return d * d;
     }
     return dst(a.x, b.x) + dst(a.y, b.y) + dst(a.z, b.z);
 }
@@ -35,9 +44,9 @@ parse :: (lines: []string) -> [..]Point {
 
         spl := split(it, ",");
         p := Point.{
-            cast(u32)string_to_int(spl[0]),
-            cast(u32)string_to_int(spl[1]),
-            cast(u32)string_to_int(spl[2]),
+            cast(u64)string_to_int(spl[0]),
+            cast(u64)string_to_int(spl[1]),
+            cast(u64)string_to_int(spl[2]),
         };
         array_add(*ret, p);
     }
@@ -60,45 +69,86 @@ calc_dists :: (points: []Point) -> [..]Point {
 
     return dists;
 }
-task_one :: (lines: []string) -> int {
+
+
+
+
+find :: (parent: []int, x: int) -> int {
+    if parent[x] != x {
+        parent[x] = find(parent, parent[x]);
+    }
+    return parent[x];
+}
+
+union_sets :: (parent: []int, size: []int, a: int, b: int) {
+    ra := find(parent, a);
+    rb := find(parent, b);
+
+    if ra == rb return;
+
+    if size[ra] < size[rb] {
+        ra, rb = rb, ra;
+    }
+
+    parent[rb] = ra;
+    size[ra]  += size[rb];
+}
+
+solve :: (lines: []string, part_1: bool) -> u64 {
+    N :: 1000;
     points := parse(lines);
 
     dists := calc_dists(points);
-    sorted := quick_sort(dists, (p) => p.z);
+    quick_sort(dists, (p) => p.z);
 
-    circuts: [..]Set(Point, point_hash, point_eq);
-    for i: 1..10 {
-        dist := dists[i];
-        a := points[dist.x];
-        b := points[dist.y];
+    parent: [..]int;
+    size: [..]int;
+    array_resize(*parent, points.count);
+    array_resize(*size, points.count);
 
-        ia := -1;
-        ib := -1;
-
-        for * circuts {
-            if set_contains(it, a) {
-                ia = it_index;
-            }
-            if set_contains(it, b) {
-                ib = it_index;
-            }
-        }
-
-        if ia != -1 && ib != -1 {
-
-             Type wanted: *Set(Value_Type=Point, given_hash_function=null, given_cmp_function=null);
-             type given: *Set(Value_Type=Point, given_hash_function=point_hash, given_cmp_function=point_eq).
-            set := set_union(*circuts[ia], *circuts[ib]);
-            array_unordered_remove_by_index(*circuts, ia);
-        }
-
+    for i : 0..points.count-1 {
+        parent[i] = i;
+        size[i] = 1;
     }
 
-    return 0;
+    for dists {
+        if it_index == N-1 && part_1 break;
+        ra := find(parent, xx it.x);
+        rb := find(parent, xx it.y);
+
+        if ra != rb {
+            union_sets(parent, size, ra, rb);
+        }
+
+        root := find(parent, 0);
+
+        if size[root] == points.count {
+            a := points[it.x];
+            b := points[it.y];
+            return a.x * b.x;
+        }
+    }
+
+    groups: [..]u64;
+    for i : 0..points.count-1 {
+        if parent[i] == i {
+            array_add(*groups, cast(u64)size[i]);
+        }
+    }
+
+    quick_sort(groups, x => x);
+
+    return groups[groups.count-1]
+         * groups[groups.count-2]
+         * groups[groups.count-3];
 }
 
-task_two :: (lines: []string) -> int {
-    return 0;
+task_one :: (lines: []string) -> u64 {
+    return solve(lines, true);
+}
+
+task_two :: (lines: []string) -> u64 {
+    return solve(lines, false);
 }
 
 main :: () {
@@ -120,7 +170,9 @@ main :: () {
         <<it = new;
     }
 
+    context.allocator = temp;
     time(arg, .One, task_one);
+    reset_temporary_storage();
     time(arg, .Two, task_two);
 }
 
