@@ -1,4 +1,4 @@
-use std::collections::*;
+use std::{cmp::Reverse, collections::*};
 
 type Diagram = Vec<bool>;
 type Wiring = Vec<Vec<usize>>;
@@ -77,9 +77,8 @@ fn bfs(diagram: Diagram, wiring: Wiring) -> usize {
 
     todo!()
 }
-fn apply2(state: &mut Vec<bool>, jolts: &mut Vec<usize>, wiring: &[usize]) {
+fn apply2(jolts: &mut Vec<usize>, wiring: &[usize]) {
     for w in wiring {
-        state[*w] = !state[*w];
         jolts[*w] += 1;
     }
 }
@@ -92,26 +91,33 @@ fn confirm_jolts(local: &[usize], jolts: &[usize]) -> bool {
         .all(|(local, jolt)| local <= jolt)
 }
 
-fn bfs2(diagram: Diagram, wiring: Wiring, jolts: Schematics) -> usize {
-    let mut initial = vec![false; diagram.len()];
-    let mut initial_jolts = vec![0; diagram.len()];
+fn bfs2(wiring: Wiring, jolts: Schematics) -> usize {
+    let mut initial_jolts = vec![0; jolts.len()];
 
-    let mut seen: HashMap<Vec<bool>, usize> = HashMap::new();
-    let mut vec = VecDeque::new();
-    vec.push_back((0, initial, initial_jolts));
+    let mut seen: HashMap<Vec<usize>, usize> = HashMap::new();
+    seen.insert(initial_jolts.clone(), 0);
+    let mut vec = BinaryHeap::new();
+    vec.push((Reverse(0), initial_jolts));
 
-    while let Some((steps, state, local_jolts)) = vec.pop_front() {
-        if state == diagram && local_jolts == jolts {
-            return steps;
+    while let Some((steps, local_jolts)) = vec.pop() {
+        if local_jolts == jolts {
+            return steps.0;
         }
 
+        seen.insert(local_jolts.clone(), steps.0);
+
         for w in wiring.iter() {
-            let mut new_state = state.clone();
             let mut new_jolts = local_jolts.clone();
-            let new_steps = steps + 1;
-            apply2(&mut new_state, &mut new_jolts, w);
-            if confirm_jolts(&new_jolts, &jolts) {
-                vec.push_back((new_steps, new_state, new_jolts));
+            let new_steps = Reverse(steps.0 + 1);
+            apply2(&mut new_jolts, w);
+
+            if let Some(num) = seen.get(&new_jolts)
+                && *num > new_steps.0
+                && confirm_jolts(&new_jolts, &jolts)
+            {
+                vec.push((new_steps, new_jolts.clone()));
+            } else if !seen.contains_key(&new_jolts) && confirm_jolts(&new_jolts, &jolts) {
+                vec.push((new_steps, new_jolts));
             }
         }
     }
@@ -134,7 +140,7 @@ fn task_two(input: &[String]) -> usize {
     let mut sum = 0;
     for (diagram, wiring, jolts) in machines {
         println!("{:?} {:?} {:?}", diagram, wiring, jolts);
-        let local = bfs2(diagram, wiring, jolts);
+        let local = bfs2(wiring, jolts);
         println!("{}", local);
         sum += local;
     }
