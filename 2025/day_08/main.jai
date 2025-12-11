@@ -11,9 +11,9 @@ Point :: struct {
 }
 
 PairDist :: struct {
-    p1: u8;
-    p2: u8;
-    dist: u32;
+    p1: u16;
+    p2: u16;
+    dist: u64;
 }
 
 fold64 :: (v: u64) -> u32 {
