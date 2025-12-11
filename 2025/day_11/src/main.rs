@@ -1,6 +1,6 @@
 use std::collections::*;
 
-use petgraph::graph::DiGraph;
+use petgraph::{graph::DiGraph, matrix_graph::NodeIndex, visit::EdgeRef};
 
 fn parse(input: &[String]) -> HashMap<String, Vec<String>> {
     let mut map = HashMap::new();
@@ -37,33 +37,6 @@ fn task_one(input: &[String]) -> usize {
     count
 }
 
-fn bfs(map: &HashMap<String, Vec<String>>, start: String, end: String) -> Vec<Vec<String>> {
-    let mut vec = VecDeque::new();
-    let mut paths = Vec::new();
-
-    let mut seen = HashSet::new();
-    seen.insert(start.clone());
-    vec.push_back((start.clone(), seen));
-
-    while let Some((curr, seen)) = vec.pop_front() {
-        if curr == end {
-            let p = seen.into_iter().collect::<Vec<_>>();
-            paths.push(p);
-        } else {
-            if let Some(nexts) = map.get(&curr) {
-                for next in nexts {
-                    if !seen.contains(next) {
-                        let mut new_seen = seen.clone();
-                        new_seen.insert(next.clone());
-                        vec.push_back((next.clone(), new_seen));
-                    }
-                }
-            }
-        }
-    }
-    paths
-}
-
 fn reverse(input: &[String]) -> HashMap<String, Vec<String>> {
     let mut map: HashMap<String, Vec<String>> = HashMap::new();
 
@@ -81,7 +54,9 @@ fn reverse(input: &[String]) -> HashMap<String, Vec<String>> {
     map
 }
 
-fn parse2(map: HashMap<String, Vec<String>>) -> DiGraph<String, String> {
+fn parse2(
+    map: HashMap<String, Vec<String>>,
+) -> (DiGraph<String, String>, HashMap<String, NodeIndex<u32>>) {
     let mut graph = DiGraph::new();
 
     let mut nodes = HashMap::new();
@@ -99,58 +74,82 @@ fn parse2(map: HashMap<String, Vec<String>>) -> DiGraph<String, String> {
         }
     }
 
-    graph
+    (graph, nodes)
 }
+
+fn total_paths(levels: &Vec<Vec<&str>>, calc: impl Fn(&str, &str) -> usize) -> usize {
+    // ways[node] = number of paths from "svr" to this node so far
+    let mut ways: HashMap<&str, usize> = HashMap::new();
+    ways.insert("svr", 1); // we start at "svr" with one path
+
+    // iterate over consecutive pairs of levels: [L0,L1], [L1,L2], ...
+    for window in levels.windows(2) {
+        let cur_level = &window[0];
+        let next_level = &window[1];
+
+        let mut next_ways: HashMap<&str, usize> = HashMap::new();
+
+        for &u in cur_level {
+            if let Some(&count_u) = ways.get(u) {
+                if count_u == 0 {
+                    continue;
+                }
+                for &v in next_level {
+                    let paths_uv = calc(u, v);
+                    if paths_uv == 0 {
+                        continue;
+                    }
+                    *next_ways.entry(v).or_insert(0) += count_u * paths_uv;
+                }
+            }
+        }
+
+        ways = next_ways;
+    }
+
+    // at the end, "out" is in the last level
+    let goal = levels.last().unwrap()[0];
+    *ways.get(goal).unwrap_or(&0)
+}
+
+use petgraph::algo::all_simple_paths;
+use std::collections::hash_map::RandomState;
 
 fn task_two(input: &[String]) -> usize {
     let map = parse(input);
 
-    let mut graph = DiGraph::new();
+    let (norm, norm_nodes) = parse2(map);
 
-    let mut nodes = HashMap::new();
+    let calc = |from: &str, to: &str| -> usize {
+        all_simple_paths::<HashSet<_>, _, RandomState>(
+            &norm,
+            norm_nodes[from],
+            norm_nodes[to],
+            0,
+            Some(6),
+        )
+        .count()
+    };
 
-    for (node, tos) in map {
-        let a = *nodes
-            .entry(node.clone())
-            .or_insert_with(|| graph.add_node(node.clone()));
+    #[rustfmt::skip]
+    let levels = vec![
+        vec!["svr"],
+        vec!["jmp", "ekk", "mwn", "iip"],
+        vec!["fft"],
+        vec!["wwr", "jeu", "dyb"],
+        vec!["cok", "cyz", "eqi"],
+        vec!["sxd", "krn", "jqy"],
+        vec!["dac"],
+        vec!["svi", "dpv", "you"],
+        vec!["out"]
+    ];
 
-        for to in tos {
-            let p = *nodes
-                .entry(to.clone())
-                .or_insert_with(|| graph.add_node(to.clone()));
-            graph.add_edge(a, p, 1);
-        }
-    }
-
-    let from = "svr".to_string();
-    let to = "dac".to_string();
-
-    use petgraph::algo::all_simple_paths;
-    use std::collections::hash_map::RandomState;
-
-    let from = nodes[&from];
-    let to = nodes[&to];
-
-    let paths = all_simple_paths::<HashSet<_>, _, RandomState>(&graph, from, to, 0, None)
-        .collect::<Vec<_>>();
-    println!("done?");
-
-    let fft = nodes["fft"];
-    let dac = nodes["dac"];
-
-    let mut count = 0;
-    for path in paths {
-        if path.contains(&fft) && path.contains(&dac) {
-            count += 1;
-        }
-    }
-
-    count
+    return total_paths(&levels, calc);
 }
 
 fn main() {
     let input = read_input(get_input_file());
-    // time(Task::One, task_one, &input);
+    time(Task::One, task_one, &input);
     time(Task::Two, task_two, &input);
 }
 
