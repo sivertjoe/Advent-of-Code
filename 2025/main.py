@@ -1,28 +1,55 @@
 from z3 import *
+import re
 
-# Integer variables
-x1, x2, x3, x4, x5, x6 = Ints("x1 x2 x3 x4 x5 x6")
+parsed = []
 
-s = Solver()
+with open("input", "r") as file:
+    for line in file:
+        line = line.strip()
+        if not line:
+            continue
 
-# Equations from the vector sum
-s.add(x5 + x6 == 3)
-s.add(x2 + x6 == 5)
-s.add(x3 + x4 + x5 == 4)
-s.add(x1 + x2 + x4 == 7)
+        paren_groups = re.findall(r"\((.*?)\)", line)
+        paren_lists = [list(map(int, group.split(","))) for group in paren_groups]
 
-# Optional: restrict to non-negative coefficients
-for x in [x1, x2, x3, x4, x5, x6]:
-    s.add(x >= 0)
+        brace_group = re.search(r"\{(.*?)\}", line)
+        brace_list = list(map(int, brace_group.group(1).split(",")))
 
-if s.check() == sat:
-    m = s.model()
-    print("Solution:")
-    print("x1 =", m[x1])
-    print("x2 =", m[x2])
-    print("x3 =", m[x3])
-    print("x4 =", m[x4])
-    print("x5 =", m[x5])
-    print("x6 =", m[x6])
-else:
-    print("No solution")
+        parsed.append((paren_lists, brace_list))
+
+for p in parsed:
+    print(p)
+
+
+from z3 import *
+
+def solve_sparse_system(cols, target, non_negative=True):
+    num_cols = len(cols)
+    num_rows = max((r for col in cols for r in col), default=-1) + 1
+
+    if len(target) != num_rows:
+        raise ValueError("target length does not match inferred number of rows")
+
+    xs = [Int(f"x{i}") for i in range(num_cols)]
+
+    opt = Optimize()
+
+    for r in range(num_rows):
+        involved_cols = [i for i, col in enumerate(cols) if r in col]
+        opt.add(Sum(xs[i] for i in involved_cols) == target[r])
+
+    if non_negative:
+        for x in xs:
+            opt.add(x >= 0)
+
+    total_sum = Sum(xs)
+    opt.minimize(total_sum)
+
+    if opt.check() == sat:
+        m = opt.model()
+        solution = [m[x].as_long() for x in xs]
+        return solution
+    else:
+        return None
+
+
