@@ -1,185 +1,253 @@
 #import "Basic";
 #import "String";
 #import "File";
+#import "Sort";
+#import "Math";
 
-Point :: struct {
-    x: s64;
+Point :: struct { x: s64; y: s64; }
+Double :: struct { a: Point; b: Point; }
+
+Line :: struct { y: s64; xmin: s64; xmax: s64; }
+VLine :: struct { x: s64; ymin: s64; ymax: s64; }
+
+Candidate :: struct {
     y: s64;
-}
+    xmin: s64;
+    xmax: s64;
 
-Segment :: struct {
-    a: Point;
-    b: Point;
+    pcount: u8;
+    pts: [2]Point;
 }
 
 parse :: (lines: []string) -> [..]Point {
     ret: [..]Point;
-
-    for lines {
-        if it == "" continue;
-        spl := split(it, ",");
-        p := Point.{
-            cast(s64)string_to_int(spl[0]),
-            cast(s64)string_to_int(spl[1])
-        };
-        array_add(*ret, p);
+    for line : lines {
+        if line == "" continue;
+        spl := split(line, ",");
+        array_add(*ret, Point.{ cast(s64)string_to_int(spl[0]), cast(s64)string_to_int(spl[1]) });
     }
     return ret;
 }
 
-point_square :: (a: Point, b: Point) -> s64 {
-    min_x := min(a.x, b.x);
-    max_x := max(a.x, b.x);
 
-    min_y := min(a.y, b.y);
-    max_y := max(a.y, b.y);
-    return (max_x - min_x + 1) * (max_y - min_y + 1);
+cand_add_point :: (c: *Candidate, p: Point) {
+    c.pts[c.pcount] = p;
+    c.pcount += 1;
+}
+
+cand_contains :: (c: Candidate, p: Point) -> bool {
+    for c.pts {
+        if it.x == p.x && it.y == p.y return true;
+    }
+    return false;
+}
+
+cand1pt :: (y: s64, xmin: s64, xmax: s64, p: Point) -> Candidate {
+    c: Candidate;
+    c.y = y;
+    c.xmin = xmin;
+    c.xmax = xmax;
+    c.pcount = 0;
+    cand_add_point(*c, p);
+    return c;
+}
+
+cand2pt :: (y: s64, xmin: s64, xmax: s64, p1: Point, p2: Point) -> Candidate {
+    c := cand1pt(y, xmin, xmax, p1);
+    cand_add_point(*c, p2);
+    return c;
+}
+point_square :: (p1: Point, p2: Point) -> s64 {
+    dx := abs(p1.x - p2.x) + 1;
+    dy := abs(p1.y - p2.y) + 1;
+    return dx * dy;
+}
+
+inside_excl :: (cand: Candidate, x: s64) -> bool {
+    return cand.xmin < x && x < cand.xmax;
+}
+
+inside_incl :: (cand: Candidate, x: s64) -> bool {
+    return cand.xmin <= x && x <= cand.xmax;
+}
+
+find_block :: (verticals: []VLine, x0: s64, y: s64, cmp: (a: s64, b: s64) -> bool) -> VLine {
+    found := false;
+    best: VLine;
+    for verticals {
+        if cmp(it.x, x0) && it.ymin <= y && y <= it.ymax {
+            if !found || cmp(it.x, best.x) {
+                best = it;
+                found = true;
+            }
+        }
+    }
+    return best;
+}
+
+find_block_right :: (verticals: []VLine, x0: s64, y: s64) -> VLine {
+    return find_block(verticals, x0, y, (a, b) => a > b);
+}
+
+find_block_left :: (verticals: []VLine, x0: s64, y: s64) -> VLine {
+    return find_block(verticals, x0, y, (a, b) => a < b);
+}
+
+solve :: (verticals: []VLine, lines: [..]Line) -> s64 {
+    active_candidates: [..]Candidate;
+    result: s64 = 0;
+
+    remove_flags: [..]bool;
+
+    while lines.count > 0 {
+        line := pop(*lines);
+
+        new := cand2pt(
+            line.y, line.xmin, line.xmax,
+            Point.{ line.xmin, line.y },
+            Point.{ line.xmax, line.y }
+        );
+
+        to_add: [..]Candidate;
+
+        array_reserve(*remove_flags, active_candidates.count);
+        remove_flags.count = 0;
+        for 0..active_candidates.count - 1 array_add(*remove_flags, false);
+
+        has_extended_left := false;
+        for cand : active_candidates {
+            if cand.xmin == new.xmax {
+                has_extended_left = true;
+
+                if cand_contains(cand, Point.{ cand.xmax, cand.y }) {
+                    a := point_square(Point.{ new.xmax, new.y }, Point.{ cand.xmax, cand.y });
+                    if a > result result = a;
+                }
+            }
+        }
+        if has_extended_left {
+            block_right := find_block_right(verticals, new.xmax, new.y);
+            c := cand1pt(new.y, new.xmin, block_right.x, Point.{ new.xmin, new.y });
+            array_add(*to_add, c);
+        }
+
+        has_extended_right := false;
+        for cand : active_candidates {
+            if cand.xmax == new.xmin {
+                has_extended_right = true;
+
+                if cand_contains(cand, Point.{ cand.xmin, cand.y }) {
+                    a := point_square(Point.{ new.xmin, new.y }, Point.{ cand.xmin, cand.y });
+                    if a > result result = a;
+                }
+            }
+        }
+        if has_extended_right {
+            block_left := find_block_left(verticals, new.xmin, new.y);
+            c := cand1pt(new.y, block_left.x, new.xmax, Point.{ new.xmax, new.y });
+            array_add(*to_add, c);
+        }
+
+        for active_candidates {
+            if new.xmin <= it.xmin && it.xmax <= new.xmax {
+                remove_flags[it_index] = true;
+            }
+        }
+
+        overlapped_any := false;
+
+        for cand : active_candidates {
+            if inside_excl(cand, new.xmin) || inside_excl(cand, new.xmax) {
+                overlapped_any = true;
+
+                for pi : 0..cast(s64)cand.pcount - 1 {
+                    p := cand.pts[pi];
+
+                    if inside_incl(cand, new.xmin) {
+                        a := point_square(p, Point.{ new.xmin, new.y });
+                        if a > result result = a;
+                    }
+                    if inside_incl(cand, new.xmax) {
+                        a := point_square(p, Point.{ new.xmax, new.y });
+                        if a > result result = a;
+                    }
+                }
+
+                if inside_excl(cand, new.xmin) && cand_contains(cand, Point.{ cand.xmin, cand.y }) {
+                    c1 := cand1pt(cand.y, cand.xmin, new.xmin, Point.{ cand.xmin, cand.y });
+                    array_add(*to_add, c1);
+
+                    c2 := cand1pt(new.y, cand.xmin, new.xmin, Point.{ new.xmin, new.y });
+                    array_add(*to_add, c2);
+                }
+
+                if inside_excl(cand, new.xmax) && cand_contains(cand, Point.{ cand.xmax, cand.y }) {
+                    c1 := cand1pt(cand.y, new.xmax, cand.xmax, Point.{ cand.xmax, cand.y });
+                    array_add(*to_add, c1);
+
+                    c2 := cand1pt(new.y, new.xmax, cand.xmax, Point.{ new.xmax, new.y });
+                    array_add(*to_add, c2);
+                }
+
+                remove_flags[it_index] = true;
+            }
+        }
+
+        if !overlapped_any array_add(*to_add, new);
+
+        for #v2 < idx: 0..active_candidates.count-1 {
+            if remove_flags[idx] {
+                array_unordered_remove_by_index(*active_candidates, idx);
+            }
+        }
+
+        for to_add array_add(*active_candidates, it);
+    }
+
+    return result;
 }
 
 task_one :: (lines: []string) -> s64 {
     points := parse(lines);
-    m := 0;
+    m: s64 = 0;
 
     for i : 0..points.count - 1 {
-        for j : i + 1..points.count - 1{
+        for j : i + 1..points.count - 1 {
             m = max(m, point_square(points[i], points[j]));
         }
     }
     return m;
 }
 
-orient :: (a: Point, b: Point, c: Point) -> int {
-    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+task_two :: (input: []string) -> s64 {
+    reds := parse(input);
+
+    n := reds.count;
+    lines: [..]Double;
+    for i : 0..reds.count - 1 {
+        a := reds[i];
+        b := reds[(i + 1) % n];
+        array_add(*lines, Double.{ a, b });
+    }
+
+    horizontals: [..]Line;
+    for seg : lines {
+        if seg.a.y != seg.b.y continue;
+        array_add(*horizontals, Line.{ seg.a.y, min(seg.a.x, seg.b.x), max(seg.a.x, seg.b.x) });
+    }
+    quick_sort(horizontals, line => line.y);
+
+    verticals: [..]VLine;
+    for seg : lines {
+        if seg.a.x != seg.b.x continue;
+        array_add(*verticals, VLine.{ seg.a.x, min(seg.a.y, seg.b.y), max(seg.a.y, seg.b.y) });
+    }
+    quick_sort(verticals, v => v.x);
+
+    return solve(verticals, horizontals);
 }
 
-on_segment :: (a: Point, b: Point, p: Point) -> bool {
-    if orient(a, b, p) != 0 return false;
 
-    return p.x >= min(a.x, b.x) 
-        && p.x <= max(a.x, b.x)
-        && p.y >= min(a.y, b.y)
-        && p.y <= max(a.y, b.y);
-}
-
-segments_cross_properly :: (a: Point, b: Point, c: Point, d: Point) -> bool {
-    o1 := orient(a, b, c);
-    o2 := orient(a, b, d);
-    o3 := orient(c, d, a);
-    o4 := orient(c, d, b);
-
-    ab_straddles_cd := (o1 < 0 && o2 > 0) || (o1 > 0 && o2 < 0);
-    cd_straddles_ab := (o3 < 0 && o4 > 0) || (o3 > 0 && o4 < 0);
-
-    return ab_straddles_cd && cd_straddles_ab;
-}
-
-polygon_edges :: (vertices: []Point) -> [..]Segment {
-    n := vertices.count;
-    edges: [..]Segment;
-    for i : 0..n-1 {
-        a := vertices[i];
-        b := vertices[(i + 1) % n];
-        array_add(*edges, Segment.{a, b});
-    }
-    return edges;
-}
-
-point_on_polygon_edge :: (p: Point, vertices: []Point) -> bool {
-    edges := polygon_edges(vertices);
-
-    for edges {
-        if on_segment(it.a, it.b, p) {
-            return true;
-        }
-    }
-    return false;
-}
-
-point_in_or_on_polygon :: (p: Point, vertices: []Point) -> bool {
-    if point_on_polygon_edge(p, vertices) {
-        return true;
-    }
-
-    px, py := (cast(float64)p.x, cast(float64)p.y);
-
-    inside := false;
-    n := vertices.count;
-    for i : 0..n - 1 {
-        x1, y1 := cast(float64)vertices[i].x, cast(float64)vertices[i].y;
-        x2, y2 := 
-            cast(float64)vertices[(i + 1) % n].x,
-            cast(float64)vertices[(i + 1) % n].y;
-
-            intersects := ((y1 > py) != (y2 > py)) && (px < (x2 - x1) * (py - y1) / (y2 - y1) + x1);
-
-        if intersects {
-            inside = !inside;
-        }
-    }
-    return inside;
-}
-
-move_is_allowed :: (old_p: Point, new_p: Point, polygon: []Point, edges: []Segment) -> bool {
-    if !point_in_or_on_polygon(old_p, polygon) {
-        return false;
-    }
-    if !point_in_or_on_polygon(new_p, polygon) {
-        return false;
-    }
-
-    for edges {
-        if segments_cross_properly(old_p, new_p, it.a, it.b) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-is_points_all_inside :: (a: Point, b: Point, polygon: []Point, edges: []Segment) -> bool {
-    min_x := min(a.x, b.x);
-    max_x := max(a.x, b.x);
-
-    min_y := min(a.y, b.y);
-    max_y := max(a.y, b.y);
-
-    top_left := Point.{min_x, min_y}; // top left
-    top_right := Point.{max_x, min_y}; // top right
-
-    bot_left := Point.{min_x, max_y}; // bot left
-    bot_right := Point.{max_x, max_y}; // bot right
-
-    if !move_is_allowed(top_left, top_right, polygon, edges) {
-        return false;
-    }
-    if !move_is_allowed(bot_left, bot_right, polygon, edges) {
-        return false;
-    }
-    if !move_is_allowed(top_left, bot_left, polygon, edges) {
-        return false;
-    }
-    if !move_is_allowed(top_right, bot_right, polygon, edges) {
-        return false;
-    }
-
-    return true;
-
-}
-
-task_two :: (lines: []string) -> int {
-    points := parse(lines);
-    edges := polygon_edges(points);
-    m := 0;
-
-    for i : 0..points.count - 1 {
-        for j : i + 1..points.count - 1{
-            if is_points_all_inside(points[i], points[j], points, edges) {
-                m = max(m, point_square(points[i], points[j]));
-            }
-        }
-    }
-    return m;
-}
 
 main :: () {
     args := get_command_line_arguments();
@@ -199,7 +267,7 @@ main :: () {
         new := trim(<<it);
         <<it = new;
     }
-
+    context.allocator = temp;
     time(arg, .One, task_one);
     time(arg, .Two, task_two);
 }
