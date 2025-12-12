@@ -63,7 +63,10 @@ parse :: (lines: []string) -> [..]Info {
 
 solve :: (cols: [..][..]int, target: []int) -> int{
     print("test\n");
-    cfg := Z3_mk_confi();
+    cfg := Z3_mk_config();
+    ctx := Z3_mk_context(cfg);
+
+    sort := Z3_mk_int_sort(ctx);
     //
     // m := 0;
     // for col : cols for col m = max(m, it);
