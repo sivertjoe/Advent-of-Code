@@ -1,47 +1,49 @@
 #import "Basic";
 #import "String";
 #import "File";
+#import "Hash_Table";
 #import "Z3";
 
 Info :: struct {
-    lights: [..]int;
+    lights: [..]bool;
     wires: [..][..]int;
     jolts: [..]int;
 }
 
+parse_lights :: (s: string) -> [..]bool {
+    ls := slice(s, 1, s.count - 2);
+    lights: [..]bool;
+
+    for ls {
+        n := ifx it == #char "." then false else true;
+        array_add(*lights, n);
+    }
+    return lights;
+}
+
+parse_wires :: (ws: []string) -> [..][..]int {
+    w: [..][..]int;
+
+    for ws {
+        s := slice(it, 1, it.count - 2);
+        spl := split(s, ",");
+        arr: [..]int;
+        for n : spl {
+            array_add(*arr, string_to_int(n));
+        }
+        array_add(*w, arr);
+    }
+    return w;
+};
+
+parse_jolts :: (s: string) -> [..]int {
+    t: [..]int;
+    spl := split(slice(s, 1, s.count - 2), ",");
+    for spl array_add(*t, string_to_int(it));
+    return t;
+}
+
 parse_line :: (line: string) -> Info {
-    parse_lights :: (s: string) -> [..]int {
-        ls := slice(s, 1, s.count - 2);
-        lights: [..]int;
-
-        for ls {
-            n := ifx it == #char "." then 0 else 1;
-            array_add(*lights, n);
-        }
-        return lights;
-    }
-    parse_wires :: (ws: []string) -> [..][..]int {
-        w: [..][..]int;
-
-        for ws {
-            s := slice(it, 1, it.count - 2);
-            spl := split(s, ",");
-            arr: [..]int;
-            for n : spl {
-                array_add(*arr, string_to_int(n));
-            }
-            array_add(*w, arr);
-        }
-        return w;
-    };
-
-    parse_jolts :: (s: string) -> [..]int {
-        t: [..]int;
-        spl := split(slice(s, 1, s.count - 2), ",");
-        for spl array_add(*t, string_to_int(it));
-        return t;
-    }
-
     spl := split(line, " ");
 
     lights := parse_lights(spl[0]);
@@ -61,26 +63,139 @@ parse :: (lines: []string) -> [..]Info {
     return infos;
 }
 
-solve :: (cols: [..][..]int, target: []int) -> int{
-    print("test\n");
-    cfg := Z3_mk_config();
-    ctx := Z3_mk_context(cfg);
+State :: struct {
+    steps: int;
+    mask: u64;
+}
 
-    sort := Z3_mk_int_sort(ctx);
-    //
-    // m := 0;
-    // for col : cols for col m = max(m, it);
+bfs :: (lights: []bool, wiring: [..][..]int) -> int {
+    target_mask: u64 = 0;
+    for lights {
+        if it {
+            target_mask |= cast(u64)1 << cast(u64)it_index;
+        }
+    }
 
-    return 0;
+    wiring_masks: [..]u64;
+    for wiring {
+        m: u64 = 0;
+        for it {
+            m |= cast(u64)1 << cast(u64)it;
+        }
+        array_add(*wiring_masks, m);
+    }
+
+    visited: Table(u64, bool);
+    queue: [..]u64;
+
+    initial_mask: u64 = 0;
+    array_add(*queue, initial_mask);
+    table_set(*visited, initial_mask, true);
+
+    head := 0;
+    steps := 0;
+
+    while head < queue.count {
+        layer_end := queue.count;
+
+        while head < layer_end {
+            curr := queue[head];
+            head += 1;
+
+            if curr == target_mask {
+                return steps;
+            }
+
+            for wiring_masks {
+                next := curr ^ it;
+                if !table_contains(*visited, next) {
+                    table_set(*visited, next, true);
+                    array_add(*queue, next);
+                }
+            }
+        }
+
+        steps += 1;
+    }
+
+    return -1;
+}
+
+solve :: (cols: [..][..]int, target: []int) -> int {
+    ctx := Context_Create();
+    defer Context_Destroy(ctx);
+
+    opt := Optimize_Create(ctx);
+    defer Optimize_Destroy(opt);
+
+    xs := NewArray(cols.count, Int);
+    defer array_free(xs);
+    for cols {
+        name := tprint("x%", it_index);
+        xs[it_index] = Int_Create(name, ctx);
+    }
+
+    for r : 0..target.count - 1 {
+        terms: [..]Z3_ast;
+
+        for c : 0..cols.count - 1 {
+            for row_idx : cols[c] {
+                if row_idx == r {
+                    array_add(*terms, xs[c]);
+                    break;
+                }
+            }
+        }
+
+        sum := Int_Add(terms, ctx);
+        target_val := Int_Create(target[r], ctx);
+        eq := Int_Eq(sum, target_val, ctx);
+        Optimize_Add(opt, eq);
+    }
+
+    // Non-negative
+    for xs {
+        ge := Int_Ge(it, Int_Create(0, ctx), ctx);
+        Optimize_Add(opt, ge);
+    }
+
+    total_sum := Int_Add(xs, ctx);
+    Optimize_Minimize(opt, total_sum);
+
+    assert(Optimize_Check(opt));
+    model := Optimize_GetModel(opt);
+    defer Model_Destroy(model);
+    Z3_model_inc_ref(ctx, model);
+
+    sum := 0;
+    for xs {
+        ok, val := Model_EvalInt(model, it);
+        if ok {
+            sum += val;
+        }
+    }
+
+    return sum;
 }
 
 task_one :: (lines: []string) -> int {
     infos := parse(lines);
-    return solve(infos[0].wires, infos[0].jolts);
+
+    sum := 0;
+    for infos {
+        sum += bfs(it.lights, it.wires);
+    }
+    return sum;
 }
 
 task_two :: (lines: []string) -> int {
-    return 0;
+    infos := parse(lines);
+
+    sum := 0;
+    for infos {
+        sum += solve(it.wires, it.jolts);
+    }
+    return sum;
 }
 
 main :: () {
