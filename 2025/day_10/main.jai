@@ -3,6 +3,7 @@
 #import "File";
 #import "Hash_Table";
 #import "Z3";
+#import "Thread";
 
 Info :: struct {
     lights: [..]bool;
@@ -121,7 +122,9 @@ bfs :: (lights: []bool, wiring: [..][..]int) -> int {
     return -1;
 }
 
-solve :: (cols: [..][..]int, target: []int) -> int {
+solve :: (info: Info) -> int {
+    cols := info.wires;
+    target := info.jolts;
     ctx := Context_Create();
     defer Context_Destroy(ctx);
 
@@ -178,6 +181,16 @@ solve :: (cols: [..][..]int, target: []int) -> int {
     return sum;
 }
 
+Work :: struct {
+    info: Info;
+    result: int;
+}
+thread_task :: (group: *Thread_Group, thread: *Thread, work: *void) -> Thread_Continue_Status {
+    w := cast(*Work)work;
+    w.result = solve(w.info);
+    return .CONTINUE;
+}
+
 task_one :: (lines: []string) -> int {
     infos := parse(lines);
 
@@ -191,10 +204,32 @@ task_one :: (lines: []string) -> int {
 task_two :: (lines: []string) -> int {
     infos := parse(lines);
 
-    sum := 0;
+    tg: Thread_Group;
+    init(*tg, 8, thread_task, true);
+    tg.logging = false;
+
+    start(*tg);
+    work:[..]Work;
     for infos {
-        sum += solve(it.wires, it.jolts);
+        w := Work.{it, 0};
+        array_add(*work, w);
     }
+    for infos {
+        add_work(*tg, *work[it_index]);
+    }
+
+    work_remaining := infos.count;
+    sum := 0;
+    while work_remaining > 0 {
+        list := get_completed_work(*tg);
+        for list {
+            val := cast(*Work)it;
+            sum += val.result;
+        }
+        work_remaining -= list.count;
+    }
+
+    shutdown(*tg);
     return sum;
 }
 
