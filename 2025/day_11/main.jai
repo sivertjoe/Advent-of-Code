@@ -18,6 +18,9 @@ parse :: (lines: []string) -> Table(string, [..]string) {
         table_set(*table, key, vals);
     }
 
+    empty: [..]string;
+    table_set(*table, "out", empty);
+
     return table;
 }
 
